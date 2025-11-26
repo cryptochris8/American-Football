@@ -35,7 +35,7 @@ import {
 // ============================================
 // Player at Z=25 facing -Z. Field: Z=-30 (red endzone) to Z=30 (blue endzone)
 // Short: Z > 10 (closer), Medium: Z 10 to -5, Deep: Z < -5 (toward red endzone)
-// TEMPORARILY using block textures instead of 3D models to debug physics issues
+// Bullseye model is ~20.3 units diameter, scale 0.074 = ~1.5m
 const RECEIVER_ARCHETYPES: Record<string, ReceiverArchetype> = {
   receiver_basic: {
     id: 'receiver_basic',
@@ -45,8 +45,8 @@ const RECEIVER_ARCHETYPES: Record<string, ReceiverArchetype> = {
     basePointsDeep: 175,
     depthShortMaxZ: 10.0,   // Short: Z > 10 (closer to player at Z=25)
     depthMediumMaxZ: -5.0,  // Medium: Z 10 to -5, Deep: Z < -5
-    blockTextureUri: 'blocks/yellow-concrete.png', // Yellow target
-    modelScale: 1,
+    modelUri: 'models/bullseye/scene.gltf',
+    modelScale: 0.074, // ~1.5m diameter target
     collisionHalfExtents: { x: 0.7, y: 0.7, z: 0.2 },
     laneMovement: {
       speed: 2.5,
@@ -63,8 +63,8 @@ const RECEIVER_ARCHETYPES: Record<string, ReceiverArchetype> = {
     basePointsDeep: 250,
     depthShortMaxZ: 5.0,    // Short: Z > 5
     depthMediumMaxZ: -10.0, // Medium: Z 5 to -10, Deep: Z < -10
-    blockTextureUri: 'blocks/orange-concrete.png', // Orange for fast
-    modelScale: 1,
+    modelUri: 'models/bullseye/scene.gltf',
+    modelScale: 0.06, // Slightly smaller (~1.2m) for fast receiver
     collisionHalfExtents: { x: 0.6, y: 0.6, z: 0.2 },
     laneMovement: {
       speed: 4.0,
@@ -81,8 +81,8 @@ const RECEIVER_ARCHETYPES: Record<string, ReceiverArchetype> = {
     basePointsDeep: 325,
     depthShortMaxZ: 0.0,    // Short: Z > 0
     depthMediumMaxZ: -15.0, // Medium: Z 0 to -15, Deep: Z < -15
-    blockTextureUri: 'blocks/lime-concrete.png', // Lime for bonus
-    modelScale: 1,
+    modelUri: 'models/bullseye/scene.gltf',
+    modelScale: 0.09, // Larger (~1.8m) for bonus target
     collisionHalfExtents: { x: 0.8, y: 0.8, z: 0.2 },
     laneMovement: {
       speed: 3.0,
@@ -97,14 +97,14 @@ const RECEIVER_ARCHETYPES: Record<string, ReceiverArchetype> = {
 // ============================================
 // Defender Archetypes
 // ============================================
-// TEMPORARILY using block textures instead of 3D models to debug physics issues
+// Football player model is ~48 units tall, scale 0.042 = ~2m
 const DEFENDER_ARCHETYPES: Record<string, DefenderArchetype> = {
   defender_obstacle: {
     id: 'defender_obstacle',
     defenderType: DefenderType.STANDARD,
     blockWeight: 1.0,
-    blockTextureUri: 'blocks/red-concrete.png', // Red defender block
-    modelScale: 1,
+    modelUri: 'models/defender/scene.gltf',
+    modelScale: 0.042, // ~2m tall player
     collisionHalfExtents: { x: 0.5, y: 1.0, z: 0.3 },
     laneMovement: {
       speed: 2.5,
@@ -466,11 +466,11 @@ export class GameManager {
 
     const receiverId = `receiver_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-    // Create entity with block texture (temporarily using blocks instead of 3D models)
+    // Create entity with 3D model (no rigid body to avoid physics issues)
     const receiverEntity = new Entity({
       name: receiverId,
-      blockTextureUri: archetype.blockTextureUri,
-      blockHalfExtents: { x: 0.5, y: 0.5, z: 0.5 }, // 1x1x1 block
+      modelUri: archetype.modelUri,
+      modelScale: archetype.modelScale,
     });
 
     receiverEntity.spawn(this.world, { x: laneX, y: 1.5, z: depthZ });
@@ -522,14 +522,14 @@ export class GameManager {
 
     const defenderId = `defender_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-    // Create entity with block texture (temporarily using blocks instead of 3D models)
+    // Create entity with 3D model (no rigid body to avoid physics issues)
     const defenderEntity = new Entity({
       name: defenderId,
-      blockTextureUri: archetype.blockTextureUri,
-      blockHalfExtents: { x: 0.5, y: 1.0, z: 0.5 }, // 1x2x1 block (taller for defender)
+      modelUri: archetype.modelUri,
+      modelScale: archetype.modelScale,
     });
 
-    defenderEntity.spawn(this.world, { x: laneX, y: 0, z: depthZ });
+    defenderEntity.spawn(this.world, { x: laneX, y: 1, z: depthZ }); // Y=1 to be on top of ground blocks
 
     const direction = Math.random() > 0.5 ? 1 : -1;
 
