@@ -20,6 +20,7 @@ import {
   World,
   Vector3Like,
   QuaternionLike,
+  Quaternion,
 } from 'hytopia';
 
 import worldMap from './assets/map.json';
@@ -89,10 +90,10 @@ class QBPlayerEntity extends DefaultPlayerEntity {
     const player = this.player;
     if (!player) return;
 
-    // Set up camera for first-person aiming
+    // Set up camera for first-person aiming at QB eye level
     player.camera.setMode(PlayerCameraMode.FIRST_PERSON);
     player.camera.setAttachedToEntity(this);
-    player.camera.setOffset({ x: 0, y: 0.4, z: 0 }); // Eye level
+    player.camera.setOffset({ x: 0, y: 1.7, z: 0 }); // QB eye level (~6ft tall)
     player.camera.setModelHiddenNodes(['head', 'neck']); // Hide head in first person
   }
 }
@@ -119,10 +120,13 @@ startServer(world => {
     // Create custom QB player entity (extends DefaultPlayerEntity)
     const playerEntity = new QBPlayerEntity(player, gameManager);
 
-    // Spawn player at QB position (behind the line of scrimmage)
-    // Camera setup happens inside QBPlayerEntity.spawn()
-    const spawnPos = { x: 0, y: 3, z: -5 };
-    playerEntity.spawn(world, spawnPos);
+    // Spawn player at QB position (near blue endzone, facing red endzone)
+    // Stadium field: Red endzone Z=-34 to -31, Blue endzone Z=31 to 34
+    // Player faces toward negative Z (red endzone direction)
+    const spawnPos = { x: 0, y: 2, z: 25 }; // Near blue endzone (Z=31-34)
+    // Use Quaternion helper for proper 180 degree rotation
+    const spawnRotation = Quaternion.fromEuler(0, 180, 0);
+    playerEntity.spawn(world, spawnPos, spawnRotation);
 
     // Register player with game manager
     gameManager.registerPlayer(player, playerEntity);

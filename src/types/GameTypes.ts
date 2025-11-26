@@ -1,6 +1,7 @@
 /**
  * QB Target Throw Game Types
  * Core type definitions for the football throwing mini-game
+ * Updated for Megatouch QB Zone-style gameplay
  */
 
 import type { Entity, Player } from 'hytopia';
@@ -14,11 +15,23 @@ export enum GameState {
   GAME_OVER = 'game_over'   // Game completely over
 }
 
-// Target Types
+// Target Types (legacy - kept for compatibility)
 export enum TargetType {
   BASIC = 'basic',          // Standard stationary target (100 pts)
   MOVING = 'moving',        // Moves horizontally (150 pts)
   BONUS = 'bonus'           // Time-limited high value (300 pts)
+}
+
+// Receiver Types (Megatouch QB Zone style)
+export enum ReceiverType {
+  BASIC = 'basic',          // Standard receiver - 75/125/175 pts by depth
+  FAST = 'fast',            // Smaller, faster receiver - 100/175/250 pts
+  BONUS = 'bonus'           // Brief high-value receiver - 150/225/325 pts
+}
+
+// Defender Types
+export enum DefenderType {
+  STANDARD = 'standard'     // Standard blocking defender
 }
 
 // Target Depth/Distance zones
@@ -176,5 +189,145 @@ export enum GameEvent {
   THROW_RELEASE = 'throw_release',
   COMBO_BREAK = 'combo_break',
   BONUS_TARGET_SPAWN = 'bonus_target_spawn',
-  PERFECT_ACCURACY = 'perfect_accuracy'
+  PERFECT_ACCURACY = 'perfect_accuracy',
+  DEFENDER_BLOCK = 'defender_block',
+  RECEIVER_HIT = 'receiver_hit'
+}
+
+// ============================================
+// Megatouch QB Zone-style Types
+// ============================================
+
+// Lane movement component for horizontal sweeping
+export interface LaneMovement {
+  speed: number;          // Movement speed (units/second)
+  minX: number;           // Left boundary
+  maxX: number;           // Right boundary
+  direction: 1 | -1;      // Current direction (1 = right, -1 = left)
+}
+
+// Receiver configuration from JSON
+export interface ReceiverConfig {
+  archetypeId: string;    // receiver_basic, receiver_fast, receiver_bonus
+  weight: number;         // Spawn weight (0-1)
+  allowedDepthsZ: [number, number]; // [min, max] Z position range
+}
+
+// Defender configuration from JSON
+export interface DefenderConfig {
+  archetypeId: string;    // defender_obstacle
+  weight: number;         // Spawn weight (0-1)
+  allowedDepthsZ: [number, number]; // [min, max] Z position range
+}
+
+// Wave configuration for spawning
+export interface WaveConfig {
+  waveIndex: number;
+  startTimeSeconds: number;
+  endTimeSeconds: number;
+  receiverSpawnIntervalSeconds: number;
+  defenderSpawnIntervalSeconds: number;
+  receivers: ReceiverConfig[];
+  defenders: DefenderConfig[];
+}
+
+// Spawn configuration from JSON
+export interface SpawnConfig {
+  id: string;
+  description: string;
+  roundDurationSeconds: number;
+  lanesX: number[];       // X positions for lanes [-4, -2, 0, 2, 4]
+  waves: WaveConfig[];
+}
+
+// Receiver archetype definition
+export interface ReceiverArchetype {
+  id: string;
+  receiverType: ReceiverType;
+  basePointsShort: number;
+  basePointsMedium: number;
+  basePointsDeep: number;
+  depthShortMaxZ: number;
+  depthMediumMaxZ: number;
+  modelUri?: string;           // Optional 3D model
+  blockTextureUri?: string;    // Optional block texture (simpler)
+  modelScale: number;
+  collisionHalfExtents: { x: number; y: number; z: number };
+  laneMovement: LaneMovement;
+  lifetime?: number;      // For bonus receivers
+}
+
+// Defender archetype definition
+export interface DefenderArchetype {
+  id: string;
+  defenderType: DefenderType;
+  blockWeight: number;    // How much this blocks
+  modelUri?: string;           // Optional 3D model
+  blockTextureUri?: string;    // Optional block texture (simpler)
+  modelScale: number;
+  collisionHalfExtents: { x: number; y: number; z: number };
+  laneMovement: LaneMovement;
+}
+
+// Active receiver instance
+export interface ReceiverData {
+  id: string;
+  entity: Entity;
+  archetype: ReceiverArchetype;
+  spawnTime: number;
+  isHit: boolean;
+  laneMovement: LaneMovement;
+  depthZ: number;         // Z position (depth into field)
+  initialX: number;       // Starting X for boundary calculation
+}
+
+// Active defender instance
+export interface DefenderData {
+  id: string;
+  entity: Entity;
+  archetype: DefenderArchetype;
+  spawnTime: number;
+  laneMovement: LaneMovement;
+  depthZ: number;
+  initialX: number;
+}
+
+// Extended game state for Megatouch QB Zone mode
+export interface MegatouchGameState {
+  // Core state
+  state: GameState;
+  roundDurationSeconds: number;
+  timeRemainingSeconds: number;
+
+  // Scoring
+  score: number;
+  multiplier: number;
+  multiplierMax: number;
+  multiplierStep: number;
+
+  // Streaks
+  currentStreak: number;
+  bestStreak: number;
+
+  // Stats
+  totalThrows: number;
+  successfulHits: number;
+  blockedThrows: number;
+
+  // Wave control
+  currentWaveIndex: number;
+  waveStartTime: number;
+  lastReceiverSpawnTime: number;
+  lastDefenderSpawnTime: number;
+
+  // Active entities
+  activeReceivers: Map<string, ReceiverData>;
+  activeDefenders: Map<string, DefenderData>;
+  activeBalls: Map<string, FootballData>;
+
+  // Lane configuration
+  lanesX: number[];
+
+  // Player state
+  playerStates: Map<string, PlayerGameState>;
 }
