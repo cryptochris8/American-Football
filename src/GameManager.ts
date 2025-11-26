@@ -8,6 +8,7 @@ import {
   Entity,
   Player,
   RigidBodyType,
+  ColliderShape,
 } from 'hytopia';
 
 import {
@@ -380,11 +381,12 @@ export class GameManager {
     const z = DEPTH_POSITIONS[config.depth];
 
     // Determine texture based on type (using block entities)
-    let blockTextureUri = 'blocks/grass'; // Default green for basic
+    // Use .png for single-texture blocks
+    let blockTextureUri = 'blocks/oak-leaves.png'; // Default green for basic
     if (config.type === TargetType.MOVING) {
-      blockTextureUri = 'blocks/sand'; // Yellow-ish for moving
+      blockTextureUri = 'blocks/sand.png'; // Yellow-ish for moving
     } else if (config.type === TargetType.BONUS) {
-      blockTextureUri = 'blocks/glass'; // Shiny for bonus
+      blockTextureUri = 'blocks/gold-block.png'; // Gold for bonus
     }
 
     // Create target as a block entity (flat disc shape)
@@ -594,18 +596,20 @@ export class GameManager {
     const yaw = typeof player.camera?.orientation?.yaw === 'number' ? player.camera.orientation.yaw : 0;
     const pitch = typeof player.camera?.orientation?.pitch === 'number' ? player.camera.orientation.pitch : 0;
 
-    // Direction vector from yaw/pitch
+    // Direction vector from yaw/pitch (Hytopia: -Z is forward)
     const dirX = -Math.sin(yaw) * Math.cos(pitch);
-    const dirY = Math.sin(pitch) * 0.5 + 0.3; // Add some upward arc
-    const dirZ = Math.cos(yaw) * Math.cos(pitch);
+    const dirY = Math.sin(pitch); // Look up = throw up, look down = throw down
+    const dirZ = -Math.cos(yaw) * Math.cos(pitch); // Negative Z is forward
 
     // Calculate velocity based on power
     const speed = THROW_CONFIG.minPower + power * (THROW_CONFIG.maxPower - THROW_CONFIG.minPower);
     const velocity = {
-      x: isNaN(dirX * speed) ? 0 : dirX * speed,
-      y: isNaN(dirY * speed + 5) ? 5 : dirY * speed + 5,
-      z: isNaN(dirZ * speed) ? speed : dirZ * speed,
+      x: dirX * speed,
+      y: dirY * speed + 5, // Add slight upward arc
+      z: dirZ * speed,
     };
+
+    console.log(`[GameManager] Throw - yaw: ${yaw.toFixed(2)}, pitch: ${pitch.toFixed(2)}, dir: (${dirX.toFixed(2)}, ${dirY.toFixed(2)}, ${dirZ.toFixed(2)}), speed: ${speed.toFixed(1)}`);
 
     this.spawnFootball(player, playerPos, velocity);
   }
@@ -616,16 +620,35 @@ export class GameManager {
   private spawnFootball(player: Player, position: { x: number; y: number; z: number }, velocity: { x: number; y: number; z: number }): void {
     const ballId = `football_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-    // Create football as a brown block entity (elongated shape)
+    // Calculate yaw to point football in direction of travel (horizontal)
+    // Add 90 degree offset to account for model's default orientation
+    const yaw = Math.atan2(-velocity.x, -velocity.z) + Math.PI / 2;
+    const halfYaw = yaw / 2;
+    const rotation = {
+      x: 0,
+      y: Math.sin(halfYaw),
+      z: 0,
+      w: Math.cos(halfYaw),
+    };
+
+    // Create football using the 3D model
     const footballEntity = new Entity({
       name: ballId,
-      blockTextureUri: 'blocks/dirt', // Brown color for football
-      blockHalfExtents: { x: 0.15, y: 0.15, z: 0.25 }, // Elongated football shape
+      modelUri: 'models/football/scene.gltf',
+      modelScale: 0.00375, // Scale down the model to football size
       rigidBodyOptions: {
         type: RigidBodyType.DYNAMIC,
         linearVelocity: velocity,
         gravityScale: 1.0,
         ccdEnabled: true, // Prevent tunneling through targets
+        enabledRotations: { x: false, y: false, z: false }, // Lock rotation - no tumbling
+        rotation, // Point nose in direction of throw
+        colliders: [
+          {
+            shape: ColliderShape.BALL,
+            radius: 0.15, // Football collision radius for hit detection
+          },
+        ],
       },
     });
 
@@ -637,9 +660,6 @@ export class GameManager {
     };
 
     footballEntity.spawn(this.world, spawnPos);
-
-    // Add some spin for visual effect
-    footballEntity.setAngularVelocity({ x: 10, y: 0, z: 0 });
 
     const ballData: FootballData = {
       id: ballId,

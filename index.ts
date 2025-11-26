@@ -11,11 +11,15 @@
 import {
   startServer,
   Audio,
-  Entity,
   DefaultPlayerEntity,
+  DefaultPlayerEntityController,
   PlayerEvent,
-  BaseEntityController,
-  PlayerEntity,
+  PlayerCameraMode,
+  BaseEntityControllerEvent,
+  Player,
+  World,
+  Vector3Like,
+  QuaternionLike,
 } from 'hytopia';
 
 import worldMap from './assets/map.json';
@@ -25,68 +29,71 @@ import { GameManager } from './src/GameManager';
 let gameManager: GameManager;
 
 /**
- * Custom QB Controller - handles aiming and throwing
- * The player is stationary but can look around to aim
+ * Custom QB Player Entity - extends DefaultPlayerEntity
+ * Handles aiming and throwing while keeping all default physics
  */
-class QBController extends BaseEntityController {
+class QBPlayerEntity extends DefaultPlayerEntity {
   private gameManager: GameManager;
   private isCharging: boolean = false;
 
-  constructor(gameManager: GameManager) {
-    super();
+  constructor(player: Player, gameManager: GameManager) {
+    super({
+      player,
+      name: `player_${player.id}`,
+    });
+
     this.gameManager = gameManager;
+
+    // Get the controller (DefaultPlayerEntityController)
+    const controller = this.controller as DefaultPlayerEntityController;
+
+    // Disable auto-cancel of mouse left click (needed for hold-to-charge)
+    controller.autoCancelMouseLeftClick = false;
+
+    // Disable default movement - QB is stationary
+    controller.canWalk = () => false;
+    controller.canRun = () => false;
+    controller.canJump = () => false;
+
+    // Listen for player input events on the controller
+    controller.on(BaseEntityControllerEvent.TICK_WITH_PLAYER_INPUT, ({ input }) => {
+      this.handleInput(input);
+    });
   }
 
   /**
-   * Called every tick with player input
+   * Handle player input for throwing
    */
-  public override tickWithPlayerInput(
-    entity: PlayerEntity,
-    input: any,
-    cameraOrientation: any,
-    deltaTimeMs: number
-  ): void {
-    // Validate deltaTimeMs before passing to parent
-    const validDeltaTime = typeof deltaTimeMs === 'number' && !isNaN(deltaTimeMs) ? deltaTimeMs : 16;
-
-    super.tickWithPlayerInput(entity, input, cameraOrientation, validDeltaTime);
-
-    const player = entity.player;
+  private handleInput(input: { ml?: boolean; [key: string]: any }): void {
+    const player = this.player;
     if (!player) return;
 
     // Handle throw charging with left mouse button
-    if (input && input.ml && !this.isCharging) {
+    if (input.ml && !this.isCharging) {
       // Start charging
       this.isCharging = true;
       this.gameManager.startCharge(player);
-    } else if (input && !input.ml && this.isCharging) {
+    } else if (!input.ml && this.isCharging) {
       // Release throw
       this.isCharging = false;
       this.gameManager.releaseThrow(player);
     }
-
-    // Rotate entity to face camera direction (yaw only)
-    if (cameraOrientation && typeof cameraOrientation.yaw === 'number' && !isNaN(cameraOrientation.yaw)) {
-      const yaw = cameraOrientation.yaw;
-      const halfYaw = yaw * 0.5;
-      const sinHalf = Math.sin(halfYaw);
-      const cosHalf = Math.cos(halfYaw);
-
-      // Only set rotation if values are valid
-      if (!isNaN(sinHalf) && !isNaN(cosHalf)) {
-        entity.setRotation({
-          x: 0,
-          y: sinHalf,
-          z: 0,
-          w: cosHalf,
-        });
-      }
-    }
   }
 
-  public override tick(entity: Entity, deltaTimeMs: number): void {
-    const validDeltaTime = typeof deltaTimeMs === 'number' && !isNaN(deltaTimeMs) ? deltaTimeMs : 16;
-    super.tick(entity, validDeltaTime);
+  /**
+   * Override spawn to set up camera after entity is spawned
+   */
+  public override spawn(world: World, position: Vector3Like, rotation?: QuaternionLike): void {
+    super.spawn(world, position, rotation);
+
+    const player = this.player;
+    if (!player) return;
+
+    // Set up camera for first-person aiming
+    player.camera.setMode(PlayerCameraMode.FIRST_PERSON);
+    player.camera.setAttachedToEntity(this);
+    player.camera.setOffset({ x: 0, y: 0.4, z: 0 }); // Eye level
+    player.camera.setModelHiddenNodes(['head', 'neck']); // Hide head in first person
   }
 }
 
@@ -109,20 +116,12 @@ startServer(world => {
   world.on(PlayerEvent.JOINED_WORLD, ({ player }) => {
     console.log(`[Server] Player joined: ${player.username}`);
 
-    // Create controller for this player
-    const qbController = new QBController(gameManager);
-
-    // Create a stationary QB player entity using default player model
-    const playerEntity = new DefaultPlayerEntity({
-      player,
-      name: `player_${player.id}`,
-    });
-
-    // Set our custom controller after creation
-    playerEntity.setController(qbController);
+    // Create custom QB player entity (extends DefaultPlayerEntity)
+    const playerEntity = new QBPlayerEntity(player, gameManager);
 
     // Spawn player at QB position (behind the line of scrimmage)
-    const spawnPos = { x: 0, y: 1, z: -5 };
+    // Camera setup happens inside QBPlayerEntity.spawn()
+    const spawnPos = { x: 0, y: 3, z: -5 };
     playerEntity.spawn(world, spawnPos);
 
     // Register player with game manager
@@ -130,11 +129,6 @@ startServer(world => {
 
     // Load the game UI
     player.ui.load('ui/index.html');
-
-    // Set up camera for first-person aiming
-    player.camera.setMode('first_person');
-    player.camera.setAttachedToEntity(playerEntity);
-    player.camera.setOffset({ x: 0, y: 1.7, z: 0 }); // Eye level
 
     // Send welcome messages
     world.chatManager.sendPlayerMessage(player, 'Welcome to QB Target Throw!', '00FF00');

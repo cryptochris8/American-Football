@@ -1,0 +1,8 @@
+Model Information:
+* title:	American Football Ball
+* source:	https://sketchfab.com/3d-models/american-football-ball-1673da54fa6d44afaa8de114f930700f
+* author:	assetfactory (https://sketchfab.com/assetfactory)
+
+Model License:
+* license type:	SKETCHFAB Standard (https://sketchfab.com/licenses)
+* requirements:	Under basic restrictions, use worldwide, on all types of media, commercially or not, and in all types of derivative works
