@@ -11,6 +11,7 @@ import {
   RigidBodyType,
   ColliderShape,
   CollisionGroup,
+  Audio,
 } from 'hytopia';
 
 import {
@@ -250,6 +251,13 @@ const THROW_CONFIG = {
   gravity: -15,
   ballLifetime: 5,
   throwCooldown: 0.3,
+};
+
+// Interception penalty config
+const INTERCEPTION_CONFIG = {
+  pointPenalty: 100,  // Points deducted on interception
+  soundUri: 'audio/sfx/interception.mp3',
+  soundVolume: 0.5,
 };
 
 const MAX_ACTIVE_RECEIVERS = 7;
@@ -879,20 +887,71 @@ export class GameManager {
     if (!ball) return;
 
     this.gameState.blockedThrows++;
-    console.log(`[GameManager] Ball blocked by defender! (${this.gameState.blockedThrows} total blocks)`);
 
-    // Reset multiplier and streak on block
+    // Deduct points for interception (don't go below 0)
+    const penalty = INTERCEPTION_CONFIG.pointPenalty;
+    this.gameState.score = Math.max(0, this.gameState.score - penalty);
+
+    console.log(`[GameManager] INTERCEPTION! -${penalty} pts (${this.gameState.blockedThrows} total interceptions)`);
+
+    // Reset multiplier and streak on interception
     this.gameState.multiplier = 1.0;
     this.gameState.currentStreak = 0;
 
     const playerState = this.gameState.playerStates.get(ball.thrownBy.id);
     if (playerState) {
       playerState.combo = 0;
+      playerState.score = Math.max(0, playerState.score - penalty);
+
+      // Send interception notification to the player
+      this.sendInterceptionNotification(ball.thrownBy, penalty);
     }
+
+    // Play interception sound effect
+    this.playInterceptionSound();
 
     // Remove ball
     if (ball.entity.isSpawned) ball.entity.despawn();
     this.gameState.activeBalls.delete(ballId);
+  }
+
+  private sendInterceptionNotification(player: Player, penalty: number): void {
+    const state = this.gameState.playerStates.get(player.id);
+    if (!state) return;
+
+    const accuracy = this.gameState.totalThrows > 0
+      ? (this.gameState.successfulHits / this.gameState.totalThrows) * 100
+      : 100;
+
+    const timeRemaining = Math.ceil(this.gameState.timeRemainingSeconds);
+
+    player.ui.sendData({
+      type: 'game_update',
+      state: this.gameState.state,
+      score: this.gameState.score,
+      combo: this.gameState.currentStreak,
+      timeRemaining: isNaN(timeRemaining) ? 0 : timeRemaining,
+      chargePower: isNaN(state.chargePower) ? 0 : state.chargePower,
+      accuracy: isNaN(accuracy) ? 100 : Math.round(accuracy),
+      roundNumber: 1,
+      notification: {
+        message: 'INTERCEPTION!',
+        type: 'negative',
+        points: -penalty,
+      },
+    });
+  }
+
+  private playInterceptionSound(): void {
+    try {
+      new Audio({
+        uri: INTERCEPTION_CONFIG.soundUri,
+        volume: INTERCEPTION_CONFIG.soundVolume,
+      }).play(this.world);
+    } catch (error) {
+      // Sound file may not exist yet, log but don't crash
+      console.log('[GameManager] Interception sound not found, skipping audio');
+    }
   }
 
   private handleMiss(): void {

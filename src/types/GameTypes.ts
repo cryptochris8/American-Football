@@ -169,6 +169,11 @@ export interface UIUpdateData {
   accuracy: number;
   roundNumber: number;
   tutorialMessage?: string;
+  notification?: {
+    message: string;
+    type: 'positive' | 'negative' | 'bonus';
+    points?: number;
+  };
 }
 
 // Leaderboard entry
