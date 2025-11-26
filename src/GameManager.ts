@@ -34,63 +34,104 @@ import {
 // Receiver Archetypes
 // ============================================
 // Player at Z=25 facing -Z. Field: Z=-30 (red endzone) to Z=30 (blue endzone)
-// Short: Z > 10 (closer), Medium: Z 10 to -5, Deep: Z < -5 (toward red endzone)
-// Bullseye model is ~20.3 units diameter, scale 0.074 = ~1.5m
+// Bullseye model is ~20.3 units diameter
+// Size + Distance scoring: Smaller targets = more points, Further = more points
 const RECEIVER_ARCHETYPES: Record<string, ReceiverArchetype> = {
-  receiver_basic: {
-    id: 'receiver_basic',
+  // EXTRA LARGE targets - Easiest to hit, lowest points
+  receiver_xlarge: {
+    id: 'receiver_xlarge',
     receiverType: ReceiverType.BASIC,
-    basePointsShort: 75,
-    basePointsMedium: 125,
-    basePointsDeep: 175,
-    depthShortMaxZ: 10.0,   // Short: Z > 10 (closer to player at Z=25)
-    depthMediumMaxZ: -5.0,  // Medium: Z 10 to -5, Deep: Z < -5
+    basePointsShort: 25,    // XL + Close = easiest possible
+    basePointsMedium: 40,
+    basePointsDeep: 60,     // XL + Far = still easy
+    depthShortMaxZ: 10.0,
+    depthMediumMaxZ: -5.0,
     modelUri: 'models/bullseye/scene.gltf',
-    modelScale: 0.074, // ~1.5m diameter target
-    collisionHalfExtents: { x: 0.7, y: 0.7, z: 0.2 },
+    modelScale: 0.13, // ~2.6m diameter - very easy target
+    collisionHalfExtents: { x: 1.3, y: 1.3, z: 0.2 },
     laneMovement: {
-      speed: 2.5,
-      minX: -12.0,  // Left sideline
-      maxX: 12.0,   // Right sideline
+      speed: 1.5, // Slowest
+      minX: -12.0,
+      maxX: 12.0,
       direction: 1,
     },
   },
-  receiver_fast: {
-    id: 'receiver_fast',
-    receiverType: ReceiverType.FAST,
-    basePointsShort: 100,
-    basePointsMedium: 175,
-    basePointsDeep: 250,
-    depthShortMaxZ: 5.0,    // Short: Z > 5
-    depthMediumMaxZ: -10.0, // Medium: Z 5 to -10, Deep: Z < -10
+  // LARGE targets - Easy to hit, lower points
+  receiver_large: {
+    id: 'receiver_large',
+    receiverType: ReceiverType.BASIC,
+    basePointsShort: 50,    // Large + Close = easy
+    basePointsMedium: 75,
+    basePointsDeep: 100,    // Large + Far = moderate
+    depthShortMaxZ: 10.0,
+    depthMediumMaxZ: -5.0,
     modelUri: 'models/bullseye/scene.gltf',
-    modelScale: 0.06, // Slightly smaller (~1.2m) for fast receiver
-    collisionHalfExtents: { x: 0.6, y: 0.6, z: 0.2 },
+    modelScale: 0.10, // ~2m diameter - easy target
+    collisionHalfExtents: { x: 1.0, y: 1.0, z: 0.2 },
     laneMovement: {
-      speed: 4.0,
-      minX: -12.0,  // Left sideline
-      maxX: 12.0,   // Right sideline
+      speed: 2.0,
+      minX: -12.0,
+      maxX: 12.0,
+      direction: 1,
+    },
+  },
+  // MEDIUM targets - Standard difficulty
+  receiver_medium: {
+    id: 'receiver_medium',
+    receiverType: ReceiverType.BASIC,
+    basePointsShort: 100,
+    basePointsMedium: 150,
+    basePointsDeep: 200,
+    depthShortMaxZ: 10.0,
+    depthMediumMaxZ: -5.0,
+    modelUri: 'models/bullseye/scene.gltf',
+    modelScale: 0.074, // ~1.5m diameter - standard target
+    collisionHalfExtents: { x: 0.75, y: 0.75, z: 0.2 },
+    laneMovement: {
+      speed: 2.5,
+      minX: -12.0,
+      maxX: 12.0,
+      direction: 1,
+    },
+  },
+  // SMALL targets - Hard to hit, higher points, faster
+  receiver_small: {
+    id: 'receiver_small',
+    receiverType: ReceiverType.FAST,
+    basePointsShort: 150,
+    basePointsMedium: 225,
+    basePointsDeep: 300,
+    depthShortMaxZ: 5.0,
+    depthMediumMaxZ: -10.0,
+    modelUri: 'models/bullseye/scene.gltf',
+    modelScale: 0.05, // ~1m diameter - harder target
+    collisionHalfExtents: { x: 0.5, y: 0.5, z: 0.2 },
+    laneMovement: {
+      speed: 3.5,
+      minX: -12.0,
+      maxX: 12.0,
       direction: -1,
     },
   },
-  receiver_bonus: {
-    id: 'receiver_bonus',
+  // TINY bonus targets - Very hard to hit, highest points, brief appearance
+  receiver_tiny: {
+    id: 'receiver_tiny',
     receiverType: ReceiverType.BONUS,
-    basePointsShort: 150,
-    basePointsMedium: 225,
-    basePointsDeep: 325,
-    depthShortMaxZ: 0.0,    // Short: Z > 0
-    depthMediumMaxZ: -15.0, // Medium: Z 0 to -15, Deep: Z < -15
+    basePointsShort: 250,
+    basePointsMedium: 350,
+    basePointsDeep: 500,    // Tiny + Far = jackpot!
+    depthShortMaxZ: 0.0,
+    depthMediumMaxZ: -15.0,
     modelUri: 'models/bullseye/scene.gltf',
-    modelScale: 0.09, // Larger (~1.8m) for bonus target
-    collisionHalfExtents: { x: 0.8, y: 0.8, z: 0.2 },
+    modelScale: 0.035, // ~0.7m diameter - very hard target
+    collisionHalfExtents: { x: 0.35, y: 0.35, z: 0.2 },
     laneMovement: {
-      speed: 3.0,
-      minX: -12.0,  // Left sideline
-      maxX: 12.0,   // Right sideline
+      speed: 4.0,
+      minX: -12.0,
+      maxX: 12.0,
       direction: 1,
     },
-    lifetime: 3.0,
+    lifetime: 4.0, // Brief appearance
   },
 };
 
@@ -119,21 +160,41 @@ const DEFENDER_ARCHETYPES: Record<string, DefenderArchetype> = {
 // Default Spawn Configuration (from JSON)
 // ============================================
 // Player at Z=25 facing -Z. Stadium: Z=-30 to Z=30
+// Goal posts at red endzone (Z ~ -32)
+const GOAL_POST_CONFIG = {
+  z: -32,           // Z position of goal posts (past red endzone)
+  leftUpright: -3,  // X position of left upright
+  rightUpright: 3,  // X position of right upright
+  crossbarY: 3,     // Height of crossbar
+  points: 500,      // Points for field goal
+};
+
 const DEFAULT_SPAWN_CONFIG: SpawnConfig = {
   id: 'qb_target_throw_spawning_default',
-  description: 'Megatouch QB Zone-style waves',
+  description: 'Megatouch QB Zone-style waves with size-based scoring',
   roundDurationSeconds: 60,
-  lanesX: [-6.0, -3.0, 0.0, 3.0, 6.0], // Wider lanes for stadium
+  lanesX: [-6.0, -3.0, 0.0, 3.0, 6.0],
   waves: [
     {
       waveIndex: 0,
       startTimeSeconds: 0,
       endTimeSeconds: 15,
       receiverSpawnIntervalSeconds: 1.5,
-      defenderSpawnIntervalSeconds: 2.5,
-      // Wave 1 (easy): Close to mid-range targets
-      receivers: [{ archetypeId: 'receiver_basic', weight: 0.9, allowedDepthsZ: [5.0, 15.0] }],
-      defenders: [{ archetypeId: 'defender_obstacle', weight: 1.0, allowedDepthsZ: [10.0, 18.0] }],
+      defenderSpawnIntervalSeconds: 3.0,
+      // Wave 1: Even distribution of all 5 sizes, close to mid range
+      receivers: [
+        { archetypeId: 'receiver_xlarge', weight: 0.2, allowedDepthsZ: [5.0, 15.0] },
+        { archetypeId: 'receiver_large', weight: 0.2, allowedDepthsZ: [5.0, 15.0] },
+        { archetypeId: 'receiver_medium', weight: 0.2, allowedDepthsZ: [0.0, 12.0] },
+        { archetypeId: 'receiver_small', weight: 0.2, allowedDepthsZ: [0.0, 10.0] },
+        { archetypeId: 'receiver_tiny', weight: 0.2, allowedDepthsZ: [-5.0, 8.0] },
+      ],
+      // Defenders spread across field - more near QB, fewer further back
+      defenders: [
+        { archetypeId: 'defender_obstacle', weight: 0.5, allowedDepthsZ: [10.0, 18.0] },  // Close (50%)
+        { archetypeId: 'defender_obstacle', weight: 0.3, allowedDepthsZ: [0.0, 10.0] },   // Mid (30%)
+        { archetypeId: 'defender_obstacle', weight: 0.2, allowedDepthsZ: [-10.0, 0.0] },  // Far (20%)
+      ],
     },
     {
       waveIndex: 1,
@@ -141,12 +202,20 @@ const DEFAULT_SPAWN_CONFIG: SpawnConfig = {
       endTimeSeconds: 35,
       receiverSpawnIntervalSeconds: 1.3,
       defenderSpawnIntervalSeconds: 2.0,
-      // Wave 2 (medium): Mid-range targets, some fast receivers
+      // Wave 2: Even distribution of all 5 sizes, mid range
       receivers: [
-        { archetypeId: 'receiver_basic', weight: 0.7, allowedDepthsZ: [-5.0, 10.0] },
-        { archetypeId: 'receiver_fast', weight: 0.3, allowedDepthsZ: [-10.0, 5.0] },
+        { archetypeId: 'receiver_xlarge', weight: 0.2, allowedDepthsZ: [-5.0, 10.0] },
+        { archetypeId: 'receiver_large', weight: 0.2, allowedDepthsZ: [-5.0, 10.0] },
+        { archetypeId: 'receiver_medium', weight: 0.2, allowedDepthsZ: [-10.0, 5.0] },
+        { archetypeId: 'receiver_small', weight: 0.2, allowedDepthsZ: [-10.0, 5.0] },
+        { archetypeId: 'receiver_tiny', weight: 0.2, allowedDepthsZ: [-15.0, 0.0] },
       ],
-      defenders: [{ archetypeId: 'defender_obstacle', weight: 1.0, allowedDepthsZ: [0.0, 15.0] }],
+      // Defenders spread across field - more near QB, fewer further back
+      defenders: [
+        { archetypeId: 'defender_obstacle', weight: 0.4, allowedDepthsZ: [5.0, 15.0] },   // Close (40%)
+        { archetypeId: 'defender_obstacle', weight: 0.35, allowedDepthsZ: [-5.0, 5.0] },  // Mid (35%)
+        { archetypeId: 'defender_obstacle', weight: 0.25, allowedDepthsZ: [-15.0, -5.0] }, // Far (25%)
+      ],
     },
     {
       waveIndex: 2,
@@ -154,13 +223,21 @@ const DEFAULT_SPAWN_CONFIG: SpawnConfig = {
       endTimeSeconds: 60,
       receiverSpawnIntervalSeconds: 1.0,
       defenderSpawnIntervalSeconds: 1.6,
-      // Wave 3 (hard): Full field depth, bonus targets appear
+      // Wave 3: Even distribution of all 5 sizes, full field depth
       receivers: [
-        { archetypeId: 'receiver_basic', weight: 0.4, allowedDepthsZ: [-10.0, 5.0] },
-        { archetypeId: 'receiver_fast', weight: 0.4, allowedDepthsZ: [-20.0, -5.0] },
-        { archetypeId: 'receiver_bonus', weight: 0.2, allowedDepthsZ: [-25.0, -15.0] },
+        { archetypeId: 'receiver_xlarge', weight: 0.2, allowedDepthsZ: [-15.0, 5.0] },
+        { archetypeId: 'receiver_large', weight: 0.2, allowedDepthsZ: [-15.0, 5.0] },
+        { archetypeId: 'receiver_medium', weight: 0.2, allowedDepthsZ: [-20.0, 0.0] },
+        { archetypeId: 'receiver_small', weight: 0.2, allowedDepthsZ: [-20.0, -5.0] },
+        { archetypeId: 'receiver_tiny', weight: 0.2, allowedDepthsZ: [-25.0, -10.0] },
       ],
-      defenders: [{ archetypeId: 'defender_obstacle', weight: 1.0, allowedDepthsZ: [-15.0, 10.0] }],
+      // Defenders spread across full field - more near QB, fewer further back
+      defenders: [
+        { archetypeId: 'defender_obstacle', weight: 0.35, allowedDepthsZ: [0.0, 12.0] },   // Close (35%)
+        { archetypeId: 'defender_obstacle', weight: 0.35, allowedDepthsZ: [-10.0, 0.0] },  // Mid (35%)
+        { archetypeId: 'defender_obstacle', weight: 0.2, allowedDepthsZ: [-20.0, -10.0] }, // Far (20%)
+        { archetypeId: 'defender_obstacle', weight: 0.1, allowedDepthsZ: [-28.0, -20.0] }, // Deep (10%)
+      ],
     },
   ],
 };
@@ -649,6 +726,7 @@ export class GameManager {
     const ballsToRemove: string[] = [];
     const receiverHits: { ballId: string; receiverId: string }[] = [];
     const defenderHits: { ballId: string; defenderId: string }[] = [];
+    const fieldGoals: string[] = [];
 
     this.gameState.activeBalls.forEach((ball, ballId) => {
       const elapsed = (now - ball.spawnTime) / 1000;
@@ -659,43 +737,63 @@ export class GameManager {
         return;
       }
 
-      // BallTargetCollisionSystem - check receiver collisions
-      this.gameState.activeReceivers.forEach((receiver, receiverId) => {
-        if (receiver.isHit) return;
-        const receiverPos = receiver.entity.position;
-        if (!receiverPos) return;
+      // Check if ball has hit the ground (Y <= 1.2 accounts for ball radius + ground at Y=1)
+      // Once grounded, ball can no longer score points
+      if (!ball.hasHitGround && ballPos.y <= 1.3) {
+        ball.hasHitGround = true;
+        console.log(`[GameManager] Football hit the ground - can no longer score`);
+      }
 
-        const dx = ballPos.x - receiverPos.x;
-        const dy = ballPos.y - receiverPos.y;
-        const dz = ballPos.z - receiverPos.z;
-        const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+      // BallTargetCollisionSystem - check receiver collisions (only if ball hasn't hit ground)
+      if (!ball.hasHitGround) {
+        this.gameState.activeReceivers.forEach((receiver, receiverId) => {
+          if (receiver.isHit) return;
+          const receiverPos = receiver.entity.position;
+          if (!receiverPos) return;
 
-        if (!isNaN(distance) && distance < 1.2) {
-          receiverHits.push({ ballId, receiverId });
+          const dx = ballPos.x - receiverPos.x;
+          const dy = ballPos.y - receiverPos.y;
+          const dz = ballPos.z - receiverPos.z;
+          const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+          if (!isNaN(distance) && distance < 1.2) {
+            receiverHits.push({ ballId, receiverId });
+          }
+        });
+
+        // BallDefenderCollisionSystem - check defender collisions
+        this.gameState.activeDefenders.forEach((defender, defenderId) => {
+          const defenderPos = defender.entity.position;
+          if (!defenderPos) return;
+
+          const dx = ballPos.x - defenderPos.x;
+          const dy = ballPos.y - defenderPos.y;
+          const dz = ballPos.z - defenderPos.z;
+          const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+          // Defender collision box is taller
+          if (!isNaN(distance) && distance < 1.5) {
+            defenderHits.push({ ballId, defenderId });
+          }
+        });
+
+        // Field Goal Detection - check if ball passes through the uprights
+        // Ball must be: between uprights (X), above crossbar (Y), and past goal post Z
+        if (ballPos.z <= GOAL_POST_CONFIG.z &&
+            ballPos.x > GOAL_POST_CONFIG.leftUpright &&
+            ballPos.x < GOAL_POST_CONFIG.rightUpright &&
+            ballPos.y > GOAL_POST_CONFIG.crossbarY) {
+          fieldGoals.push(ballId);
         }
-      });
-
-      // BallDefenderCollisionSystem - check defender collisions
-      this.gameState.activeDefenders.forEach((defender, defenderId) => {
-        const defenderPos = defender.entity.position;
-        if (!defenderPos) return;
-
-        const dx = ballPos.x - defenderPos.x;
-        const dy = ballPos.y - defenderPos.y;
-        const dz = ballPos.z - defenderPos.z;
-        const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
-
-        // Defender collision box is taller
-        if (!isNaN(distance) && distance < 1.5) {
-          defenderHits.push({ ballId, defenderId });
-        }
-      });
+      }
 
       // Remove if lifetime exceeded or fell below ground
       if (elapsed >= THROW_CONFIG.ballLifetime || ballPos.y < -2) {
         ballsToRemove.push(ballId);
-        // Miss - reset multiplier
-        this.handleMiss();
+        // Miss - reset multiplier (only if it didn't already score)
+        if (!ball.hasHitGround) {
+          this.handleMiss();
+        }
       }
     });
 
@@ -707,6 +805,11 @@ export class GameManager {
     // Process defender hits (blocked)
     defenderHits.forEach(({ ballId, defenderId }) => {
       this.handleDefenderBlock(ballId);
+    });
+
+    // Process field goals (bonus points!)
+    fieldGoals.forEach((ballId) => {
+      this.handleFieldGoal(ballId);
     });
 
     // Remove expired balls
@@ -798,6 +901,41 @@ export class GameManager {
     this.gameState.currentStreak = 0;
   }
 
+  private handleFieldGoal(ballId: string): void {
+    const ball = this.gameState.activeBalls.get(ballId);
+    if (!ball) return;
+
+    // Award field goal points with multiplier
+    const points = Math.floor(GOAL_POST_CONFIG.points * this.gameState.multiplier);
+
+    // Update game state
+    this.gameState.score += points;
+    this.gameState.successfulHits++;
+    this.gameState.currentStreak++;
+    this.gameState.bestStreak = Math.max(this.gameState.bestStreak, this.gameState.currentStreak);
+
+    // Increase multiplier (field goals boost it extra)
+    this.gameState.multiplier = Math.min(
+      this.gameState.multiplierMax,
+      this.gameState.multiplier + this.gameState.multiplierStep * 2 // Double multiplier boost for field goal
+    );
+
+    // Update player state
+    const playerState = this.gameState.playerStates.get(ball.thrownBy.id);
+    if (playerState) {
+      playerState.score += points;
+      playerState.combo++;
+      playerState.successfulHits++;
+      playerState.maxCombo = Math.max(playerState.maxCombo, playerState.combo);
+    }
+
+    console.log(`[GameManager] FIELD GOAL! +${points} pts (${this.gameState.multiplier.toFixed(1)}x multiplier)`);
+
+    // Remove ball
+    if (ball.entity.isSpawned) ball.entity.despawn();
+    this.gameState.activeBalls.delete(ballId);
+  }
+
   // ============================================
   // Player Input & Throwing
   // ============================================
@@ -887,6 +1025,7 @@ export class GameManager {
           {
             shape: ColliderShape.BALL,
             radius: 0.15,
+            bounciness: 0.6, // Add bounce when hitting ground
             // Football only collides with blocks, not players or other entities
             collisionGroups: {
               belongsTo: [CollisionGroup.GROUP_1], // Custom group for footballs
@@ -911,6 +1050,7 @@ export class GameManager {
       spawnTime: Date.now(),
       thrownBy: player,
       initialVelocity: velocity,
+      hasHitGround: false,
     };
 
     this.gameState.activeBalls.set(ballId, ballData);

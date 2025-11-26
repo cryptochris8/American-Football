@@ -70,7 +70,8 @@
           "radius": 0.3,
           "collisionGroup": "ball",
           "collidesWith": [
-            "target"
+            "receiver",
+            "defender"
           ]
         },
         "OwnedBy": {
@@ -79,14 +80,14 @@
       }
     },
     {
-      "id": "target_basic",
-      "description": "Stationary target worth base points.",
+      "id": "receiver_basic",
+      "description": "Basic moving receiver target.",
       "components": {
         "Transform": {
           "position": [
             0,
             1.8,
-            15
+            18
           ],
           "rotation": [
             0,
@@ -100,61 +101,15 @@
           ]
         },
         "Model": {
-          "assetId": "models/target_basic.glb"
+          "assetId": "models/receiver_basic.glb"
         },
-        "Target": {
-          "targetType": "basic",
-          "basePointsShort": 50,
-          "basePointsMedium": 75,
-          "basePointsDeep": 100,
-          "depthShortMaxZ": 14.9,
-          "depthMediumMaxZ": 24.9
-        },
-        "Collision": {
-          "type": "box",
-          "halfExtents": [
-            0.7,
-            0.7,
-            0.2
-          ],
-          "collisionGroup": "target",
-          "collidesWith": [
-            "ball"
-          ]
-        }
-      }
-    },
-    {
-      "id": "target_moving",
-      "description": "Horizontally moving target.",
-      "components": {
-        "Transform": {
-          "position": [
-            -4,
-            1.8,
-            22
-          ],
-          "rotation": [
-            0,
-            0,
-            0
-          ],
-          "scale": [
-            1,
-            1,
-            1
-          ]
-        },
-        "Model": {
-          "assetId": "models/target_moving.glb"
-        },
-        "Target": {
-          "targetType": "moving",
-          "basePointsShort": 100,
-          "basePointsMedium": 150,
-          "basePointsDeep": 200,
-          "depthShortMaxZ": 14.9,
-          "depthMediumMaxZ": 24.9
+        "Receiver": {
+          "receiverType": "basic",
+          "basePointsShort": 75,
+          "basePointsMedium": 125,
+          "basePointsDeep": 175,
+          "depthShortMaxZ": 15.0,
+          "depthMediumMaxZ": 24.0
         },
         "Collision": {
           "type": "box",
@@ -163,27 +118,80 @@
             0.7,
             0.2
           ],
-          "collisionGroup": "target",
+          "collisionGroup": "receiver",
           "collidesWith": [
             "ball"
           ]
         },
-        "HorizontalMovement": {
+        "LaneMovement": {
           "speed": 2.0,
-          "minX": -6.0,
-          "maxX": 6.0
+          "minX": -5.0,
+          "maxX": 5.0,
+          "direction": 1
         }
       }
     },
     {
-      "id": "target_bonus",
-      "description": "Bonus target that appears briefly and gives more points.",
+      "id": "receiver_fast",
+      "description": "Smaller, faster receiver worth more points.",
       "components": {
         "Transform": {
           "position": [
             0,
-            2.5,
-            28
+            1.8,
+            24
+          ],
+          "rotation": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0.9,
+            0.9,
+            0.9
+          ]
+        },
+        "Model": {
+          "assetId": "models/receiver_fast.glb"
+        },
+        "Receiver": {
+          "receiverType": "fast",
+          "basePointsShort": 100,
+          "basePointsMedium": 175,
+          "basePointsDeep": 250,
+          "depthShortMaxZ": 15.0,
+          "depthMediumMaxZ": 24.0
+        },
+        "Collision": {
+          "type": "box",
+          "halfExtents": [
+            0.6,
+            0.6,
+            0.2
+          ],
+          "collisionGroup": "receiver",
+          "collidesWith": [
+            "ball"
+          ]
+        },
+        "LaneMovement": {
+          "speed": 3.5,
+          "minX": -5.0,
+          "maxX": 5.0,
+          "direction": -1
+        }
+      }
+    },
+    {
+      "id": "receiver_bonus",
+      "description": "Bonus receiver that appears briefly and gives lots of points.",
+      "components": {
+        "Transform": {
+          "position": [
+            0,
+            2.2,
+            30
           ],
           "rotation": [
             0,
@@ -193,34 +201,88 @@
           "scale": [
             1.1,
             1.1,
-            0.5
+            1.1
           ]
         },
         "Model": {
-          "assetId": "models/target_bonus.glb"
+          "assetId": "models/receiver_bonus.glb"
         },
-        "Target": {
-          "targetType": "bonus",
+        "Receiver": {
+          "receiverType": "bonus",
           "basePointsShort": 150,
           "basePointsMedium": 225,
-          "basePointsDeep": 300,
-          "depthShortMaxZ": 14.9,
-          "depthMediumMaxZ": 24.9
+          "basePointsDeep": 325,
+          "depthShortMaxZ": 15.0,
+          "depthMediumMaxZ": 24.0
         },
         "Collision": {
           "type": "box",
           "halfExtents": [
-            0.9,
-            0.9,
-            0.3
+            0.8,
+            0.8,
+            0.2
           ],
-          "collisionGroup": "target",
+          "collisionGroup": "receiver",
           "collidesWith": [
             "ball"
           ]
+        },
+        "LaneMovement": {
+          "speed": 2.5,
+          "minX": -5.5,
+          "maxX": 5.5,
+          "direction": 1
         },
         "Lifetime": {
           "maxLifetimeSeconds": 3.0
+        }
+      }
+    },
+    {
+      "id": "defender_obstacle",
+      "description": "Defensive obstacle that tries to block passes.",
+      "components": {
+        "Transform": {
+          "position": [
+            0,
+            2.0,
+            20
+          ],
+          "rotation": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            1.1,
+            1.1,
+            1.1
+          ]
+        },
+        "Model": {
+          "assetId": "models/defender_obstacle.glb"
+        },
+        "Defender": {
+          "defenderType": "standard",
+          "blockWeight": 1.0
+        },
+        "Collision": {
+          "type": "box",
+          "halfExtents": [
+            0.9,
+            1.4,
+            0.3
+          ],
+          "collisionGroup": "defender",
+          "collidesWith": [
+            "ball"
+          ]
+        },
+        "LaneMovement": {
+          "speed": 2.5,
+          "minX": -6.0,
+          "maxX": 6.0,
+          "direction": -1
         }
       }
     },
@@ -232,7 +294,7 @@
           "position": [
             0,
             0,
-            15
+            18
           ],
           "rotation": [
             0,
@@ -266,11 +328,12 @@
           "bestStreak": 0,
           "totalThrows": 0,
           "successfulHits": 0,
+          "blockedThrows": 0,
           "isRoundActive": false
         },
-        "TargetSpawnController": {
+        "LaneSpawnController": {
           "currentWaveIndex": 0,
-          "waveConfigId": "default_easy_to_hard"
+          "waveConfigId": "default_qb_zone_style"
         }
       }
     },

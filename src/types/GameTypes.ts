@@ -79,6 +79,7 @@ export interface FootballData {
   spawnTime: number;
   thrownBy: Player;
   initialVelocity: { x: number; y: number; z: number };
+  hasHitGround: boolean; // Once true, ball can no longer score
 }
 
 // Player game state (per-player)

@@ -3,26 +3,39 @@
   "spawnConfigs": [
     {
       "id": "qb_target_throw_spawning_default",
-      "description": "Easy-to-hard wave progression for a 60s round.",
+      "description": "Megatouch QB Zone\u2013style waves: receivers and defenders sweeping across lanes.",
       "roundDurationSeconds": 60,
+      "lanesX": [
+        -4.0,
+        -2.0,
+        0.0,
+        2.0,
+        4.0
+      ],
       "waves": [
         {
           "waveIndex": 0,
           "startTimeSeconds": 0,
           "endTimeSeconds": 15,
-          "spawnIntervalSeconds": 1.5,
-          "targetPool": [
+          "receiverSpawnIntervalSeconds": 1.5,
+          "defenderSpawnIntervalSeconds": 2.5,
+          "receivers": [
             {
-              "archetypeId": "target_basic",
-              "weight": 1.0,
-              "allowedLanesX": [
-                -4.0,
-                0.0,
-                4.0
-              ],
+              "archetypeId": "receiver_basic",
+              "weight": 0.9,
               "allowedDepthsZ": [
-                10.0,
+                14.0,
                 20.0
+              ]
+            }
+          ],
+          "defenders": [
+            {
+              "archetypeId": "defender_obstacle",
+              "weight": 1.0,
+              "allowedDepthsZ": [
+                18.0,
+                24.0
               ]
             }
           ]
@@ -31,33 +44,33 @@
           "waveIndex": 1,
           "startTimeSeconds": 15,
           "endTimeSeconds": 35,
-          "spawnIntervalSeconds": 1.2,
-          "targetPool": [
+          "receiverSpawnIntervalSeconds": 1.3,
+          "defenderSpawnIntervalSeconds": 2.0,
+          "receivers": [
             {
-              "archetypeId": "target_basic",
+              "archetypeId": "receiver_basic",
               "weight": 0.7,
-              "allowedLanesX": [
-                -4.0,
-                0.0,
-                4.0
-              ],
               "allowedDepthsZ": [
-                10.0,
-                20.0,
-                30.0
+                14.0,
+                22.0
               ]
             },
             {
-              "archetypeId": "target_moving",
+              "archetypeId": "receiver_fast",
               "weight": 0.3,
-              "allowedLanesX": [
-                -4.0,
-                0.0,
-                4.0
-              ],
               "allowedDepthsZ": [
-                20.0,
-                30.0
+                18.0,
+                26.0
+              ]
+            }
+          ],
+          "defenders": [
+            {
+              "archetypeId": "defender_obstacle",
+              "weight": 1.0,
+              "allowedDepthsZ": [
+                18.0,
+                26.0
               ]
             }
           ]
@@ -66,46 +79,41 @@
           "waveIndex": 2,
           "startTimeSeconds": 35,
           "endTimeSeconds": 60,
-          "spawnIntervalSeconds": 1.0,
-          "targetPool": [
+          "receiverSpawnIntervalSeconds": 1.0,
+          "defenderSpawnIntervalSeconds": 1.6,
+          "receivers": [
             {
-              "archetypeId": "target_basic",
-              "weight": 0.3,
-              "allowedLanesX": [
-                -4.0,
-                0.0,
-                4.0
-              ],
+              "archetypeId": "receiver_basic",
+              "weight": 0.4,
               "allowedDepthsZ": [
-                10.0,
-                20.0,
-                30.0
+                14.0,
+                22.0
               ]
             },
             {
-              "archetypeId": "target_moving",
-              "weight": 0.5,
-              "allowedLanesX": [
-                -4.0,
-                0.0,
-                4.0
-              ],
+              "archetypeId": "receiver_fast",
+              "weight": 0.4,
               "allowedDepthsZ": [
-                20.0,
-                30.0
+                18.0,
+                28.0
               ]
             },
             {
-              "archetypeId": "target_bonus",
+              "archetypeId": "receiver_bonus",
               "weight": 0.2,
-              "allowedLanesX": [
-                -4.0,
-                0.0,
-                4.0
-              ],
               "allowedDepthsZ": [
-                25.0,
+                24.0,
                 30.0
+              ]
+            }
+          ],
+          "defenders": [
+            {
+              "archetypeId": "defender_obstacle",
+              "weight": 1.0,
+              "allowedDepthsZ": [
+                18.0,
+                28.0
               ]
             }
           ]
