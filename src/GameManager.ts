@@ -48,8 +48,8 @@ const RECEIVER_ARCHETYPES: Record<string, ReceiverArchetype> = {
     depthShortMaxZ: 10.0,
     depthMediumMaxZ: -5.0,
     modelUri: 'models/bullseye/scene.gltf',
-    modelScale: 0.13, // ~2.6m diameter - very easy target
-    collisionHalfExtents: { x: 1.3, y: 1.3, z: 0.2 },
+    modelScale: 0.175, // ~3.5m diameter - very easy target
+    collisionHalfExtents: { x: 1.75, y: 1.75, z: 0.3 },
     laneMovement: {
       speed: 1.5, // Slowest
       minX: -12.0,
@@ -67,8 +67,8 @@ const RECEIVER_ARCHETYPES: Record<string, ReceiverArchetype> = {
     depthShortMaxZ: 10.0,
     depthMediumMaxZ: -5.0,
     modelUri: 'models/bullseye/scene.gltf',
-    modelScale: 0.10, // ~2m diameter - easy target
-    collisionHalfExtents: { x: 1.0, y: 1.0, z: 0.2 },
+    modelScale: 0.135, // ~2.7m diameter - easy target
+    collisionHalfExtents: { x: 1.35, y: 1.35, z: 0.3 },
     laneMovement: {
       speed: 2.0,
       minX: -12.0,
@@ -86,8 +86,8 @@ const RECEIVER_ARCHETYPES: Record<string, ReceiverArchetype> = {
     depthShortMaxZ: 10.0,
     depthMediumMaxZ: -5.0,
     modelUri: 'models/bullseye/scene.gltf',
-    modelScale: 0.074, // ~1.5m diameter - standard target
-    collisionHalfExtents: { x: 0.75, y: 0.75, z: 0.2 },
+    modelScale: 0.10, // ~2m diameter - standard target (player height)
+    collisionHalfExtents: { x: 1.0, y: 1.0, z: 0.25 },
     laneMovement: {
       speed: 2.5,
       minX: -12.0,
@@ -105,8 +105,8 @@ const RECEIVER_ARCHETYPES: Record<string, ReceiverArchetype> = {
     depthShortMaxZ: 5.0,
     depthMediumMaxZ: -10.0,
     modelUri: 'models/bullseye/scene.gltf',
-    modelScale: 0.05, // ~1m diameter - harder target
-    collisionHalfExtents: { x: 0.5, y: 0.5, z: 0.2 },
+    modelScale: 0.07, // ~1.4m diameter - harder target
+    collisionHalfExtents: { x: 0.7, y: 0.7, z: 0.2 },
     laneMovement: {
       speed: 3.5,
       minX: -12.0,
@@ -124,8 +124,8 @@ const RECEIVER_ARCHETYPES: Record<string, ReceiverArchetype> = {
     depthShortMaxZ: 0.0,
     depthMediumMaxZ: -15.0,
     modelUri: 'models/bullseye/scene.gltf',
-    modelScale: 0.035, // ~0.7m diameter - very hard target
-    collisionHalfExtents: { x: 0.35, y: 0.35, z: 0.2 },
+    modelScale: 0.05, // ~1m diameter - very hard target
+    collisionHalfExtents: { x: 0.5, y: 0.5, z: 0.2 },
     laneMovement: {
       speed: 4.0,
       minX: -12.0,
@@ -139,15 +139,15 @@ const RECEIVER_ARCHETYPES: Record<string, ReceiverArchetype> = {
 // ============================================
 // Defender Archetypes
 // ============================================
-// Football player model is ~48 units tall, scale 0.042 = ~2m
+// Football player model is ~48 units tall, scale 0.055 = ~2.6m (with arms raised blocking)
 const DEFENDER_ARCHETYPES: Record<string, DefenderArchetype> = {
   defender_obstacle: {
     id: 'defender_obstacle',
     defenderType: DefenderType.STANDARD,
     blockWeight: 1.0,
     modelUri: 'models/defender/scene.gltf',
-    modelScale: 0.042, // ~2m tall player
-    collisionHalfExtents: { x: 0.5, y: 1.0, z: 0.3 },
+    modelScale: 0.055, // ~2.6m tall player (representing blocking reach)
+    collisionHalfExtents: { x: 0.6, y: 1.3, z: 0.4 },
     laneMovement: {
       speed: 2.5,
       minX: -10.0,
