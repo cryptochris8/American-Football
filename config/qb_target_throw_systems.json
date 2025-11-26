@@ -1,0 +1,168 @@
+{
+  "gameId": "qb_target_throw",
+  "systems": [
+    {
+      "id": "InputAimSystem",
+      "order": 10,
+      "description": "Reads player input and updates aim/crosshair.",
+      "config": {
+        "inputSource": "keyboard_mouse",
+        "aimMode": "crosshair",
+        "crosshairEntityTag": "aim_crosshair",
+        "sensitivity": 1.0,
+        "clampX": [
+          -8.0,
+          8.0
+        ],
+        "clampZ": [
+          8.0,
+          32.0
+        ],
+        "laneMode": {
+          "enabled": true,
+          "lanesX": [
+            -4.0,
+            0.0,
+            4.0
+          ],
+          "depthBandsZ": [
+            10.0,
+            20.0,
+            30.0
+          ],
+          "laneKeys": {
+            "left": "KeyA",
+            "right": "KeyD",
+            "up": "KeyW",
+            "down": "KeyS"
+          }
+        }
+      }
+    },
+    {
+      "id": "ThrowChargeSystem",
+      "order": 20,
+      "description": "Handles charging and releasing QB throws.",
+      "config": {
+        "throwKey": "Space",
+        "maxChargeSeconds": 1.0,
+        "minChargePower": 0.3,
+        "maxChargePower": 1.0,
+        "chargeCurve": "linear",
+        "cooldownSeconds": 0.1,
+        "uiPowerBarElementId": "power_bar"
+      }
+    },
+    {
+      "id": "ThrowSpawnBallSystem",
+      "order": 30,
+      "description": "Spawns football projectiles when a throw is released.",
+      "config": {
+        "ballArchetypeId": "football_projectile",
+        "ownerEntityId": "player_qb",
+        "spawnOffset": [
+          0,
+          1.6,
+          0.5
+        ],
+        "baseForwardSpeed": 22.0,
+        "baseUpwardSpeed": 6.0,
+        "powerAffectsForward": true,
+        "powerAffectsUpward": true,
+        "maxSpreadAngleDegrees": 2.0
+      }
+    },
+    {
+      "id": "BallPhysicsSystem",
+      "order": 40,
+      "description": "Updates projectile motion of footballs.",
+      "config": {
+        "gravity": -9.8,
+        "deltaTimeSource": "engine",
+        "destroyOnGroundY": -0.1,
+        "destroyOnLifetimeExpired": true
+      }
+    },
+    {
+      "id": "BallTargetCollisionSystem",
+      "order": 50,
+      "description": "Detects collisions between footballs and targets, then awards points.",
+      "config": {
+        "ballCollisionGroup": "ball",
+        "targetCollisionGroup": "target",
+        "destroyBallOnHit": true,
+        "triggerTargetHitEvent": true
+      }
+    },
+    {
+      "id": "ScoreAndComboSystem",
+      "order": 60,
+      "description": "Updates score, multiplier, streaks, and accuracy.",
+      "config": {
+        "gameControllerId": "game_controller",
+        "onHitEventId": "OnTargetHit",
+        "onMissEventId": "OnThrowMiss",
+        "multiplierMax": 3.0,
+        "multiplierStepOnHit": 0.1,
+        "resetMultiplierOnMiss": true,
+        "uiScoreElementId": "score_text",
+        "uiMultiplierElementId": "multiplier_text",
+        "uiAccuracyElementId": "accuracy_text"
+      }
+    },
+    {
+      "id": "TargetSpawnSystem",
+      "order": 70,
+      "description": "Spawns targets according to wave definitions.",
+      "config": {
+        "gameControllerId": "game_controller",
+        "spawnConfigId": "qb_target_throw_spawning_default",
+        "maxActiveTargets": 6
+      }
+    },
+    {
+      "id": "TargetMovementSystem",
+      "order": 80,
+      "description": "Moves targets with HorizontalMovement component.",
+      "config": {
+        "deltaTimeSource": "engine"
+      }
+    },
+    {
+      "id": "TargetLifetimeSystem",
+      "order": 90,
+      "description": "Removes bonus targets after lifetime expires.",
+      "config": {
+        "deltaTimeSource": "engine"
+      }
+    },
+    {
+      "id": "RoundTimerSystem",
+      "order": 100,
+      "description": "Counts down round timer and ends round when it reaches zero.",
+      "config": {
+        "gameControllerId": "game_controller",
+        "uiTimerElementId": "timer_text",
+        "onRoundStartEventId": "OnQBRoundStarted",
+        "onRoundEndEventId": "OnQBRoundEnded"
+      }
+    },
+    {
+      "id": "UIHudUpdateSystem",
+      "order": 110,
+      "description": "Refreshes HUD values (score, timer, multiplier, accuracy, power bar).",
+      "config": {
+        "gameControllerId": "game_controller",
+        "uiCanvasId": "ui_canvas_qb_throw"
+      }
+    },
+    {
+      "id": "RoundStateInitSystem",
+      "order": 5,
+      "description": "Initializes game state when the player enters the QB Target Throw mode.",
+      "config": {
+        "gameControllerId": "game_controller"
+      }
+    }
+  ]
+}

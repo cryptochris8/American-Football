@@ -1,0 +1,116 @@
+{
+  "gameId": "qb_target_throw",
+  "spawnConfigs": [
+    {
+      "id": "qb_target_throw_spawning_default",
+      "description": "Easy-to-hard wave progression for a 60s round.",
+      "roundDurationSeconds": 60,
+      "waves": [
+        {
+          "waveIndex": 0,
+          "startTimeSeconds": 0,
+          "endTimeSeconds": 15,
+          "spawnIntervalSeconds": 1.5,
+          "targetPool": [
+            {
+              "archetypeId": "target_basic",
+              "weight": 1.0,
+              "allowedLanesX": [
+                -4.0,
+                0.0,
+                4.0
+              ],
+              "allowedDepthsZ": [
+                10.0,
+                20.0
+              ]
+            }
+          ]
+        },
+        {
+          "waveIndex": 1,
+          "startTimeSeconds": 15,
+          "endTimeSeconds": 35,
+          "spawnIntervalSeconds": 1.2,
+          "targetPool": [
+            {
+              "archetypeId": "target_basic",
+              "weight": 0.7,
+              "allowedLanesX": [
+                -4.0,
+                0.0,
+                4.0
+              ],
+              "allowedDepthsZ": [
+                10.0,
+                20.0,
+                30.0
+              ]
+            },
+            {
+              "archetypeId": "target_moving",
+              "weight": 0.3,
+              "allowedLanesX": [
+                -4.0,
+                0.0,
+                4.0
+              ],
+              "allowedDepthsZ": [
+                20.0,
+                30.0
+              ]
+            }
+          ]
+        },
+        {
+          "waveIndex": 2,
+          "startTimeSeconds": 35,
+          "endTimeSeconds": 60,
+          "spawnIntervalSeconds": 1.0,
+          "targetPool": [
+            {
+              "archetypeId": "target_basic",
+              "weight": 0.3,
+              "allowedLanesX": [
+                -4.0,
+                0.0,
+                4.0
+              ],
+              "allowedDepthsZ": [
+                10.0,
+                20.0,
+                30.0
+              ]
+            },
+            {
+              "archetypeId": "target_moving",
+              "weight": 0.5,
+              "allowedLanesX": [
+                -4.0,
+                0.0,
+                4.0
+              ],
+              "allowedDepthsZ": [
+                20.0,
+                30.0
+              ]
+            },
+            {
+              "archetypeId": "target_bonus",
+              "weight": 0.2,
+              "allowedLanesX": [
+                -4.0,
+                0.0,
+                4.0
+              ],
+              "allowedDepthsZ": [
+                25.0,
+                30.0
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

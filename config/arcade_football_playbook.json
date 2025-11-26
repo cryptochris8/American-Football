@@ -1,0 +1,57 @@
+{
+  "gameId": "arcade_football",
+  "playbooks": [
+    {
+      "id": "arcade_football_default_playbook",
+      "description": "Small set of arcade plays for quick games.",
+      "offensePlays": [
+        {
+          "id": "quick_slants",
+          "type": "pass",
+          "displayName": "Quick Slants",
+          "routes": {
+            "WR1": "slant_short_in",
+            "WR2": "slant_mid_in",
+            "RB": "flat_out"
+          }
+        },
+        {
+          "id": "deep_go",
+          "type": "pass",
+          "displayName": "Go Routes",
+          "routes": {
+            "WR1": "go_deep_left",
+            "WR2": "go_deep_right",
+            "RB": "block_then_release"
+          }
+        },
+        {
+          "id": "hb_dive",
+          "type": "run",
+          "displayName": "HB Dive",
+          "handoffTarget": "RB",
+          "path": "straight_middle"
+        },
+        {
+          "id": "hb_sweep",
+          "type": "run",
+          "displayName": "HB Sweep",
+          "handoffTarget": "RB",
+          "path": "wide_outside"
+        }
+      ],
+      "defensePlays": [
+        {
+          "id": "zone_cover_2",
+          "displayName": "Cover 2 Zone",
+          "type": "zone"
+        },
+        {
+          "id": "man_blitz",
+          "displayName": "Man Blitz",
+          "type": "man"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,51 @@
+{
+  "gameId": "arcade_football",
+  "entities": [
+    {
+      "id": "stadium_root",
+      "description": "Stadium field and environment mesh.",
+      "components": {
+        "Transform": {
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            1,
+            1,
+            1
+          ]
+        },
+        "Model": {
+          "assetId": "models/stadium_field.glb"
+        }
+      }
+    },
+    {
+      "id": "af_game_controller",
+      "description": "Game state for Arcade Football.",
+      "components": {
+        "ArcadeFootballState": {
+          "quarterLengthSeconds": 180,
+          "currentQuarter": 1,
+          "gameClockSeconds": 180,
+          "offenseTeamId": "home",
+          "defenseTeamId": "away",
+          "ballYardLine": 20,
+          "currentDown": 1,
+          "yardsToFirstDown": 10,
+          "homeScore": 0,
+          "awayScore": 0,
+          "possession": "home",
+          "gameState": "kickoff"
+        }
+      }
+    }
+  ]
+}

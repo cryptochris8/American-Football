@@ -1,0 +1,21 @@
+{
+  "name": "qb-target-throw",
+  "version": "1.0.0",
+  "description": "QB Target Throw - An American Football throwing mini-game for Hytopia",
+  "main": "index.ts",
+  "scripts": {
+    "start": "npx hytopia",
+    "dev": "npx hytopia --dev",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": ["hytopia", "football", "game", "arcade"],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "hytopia": "^0.14.5"
+  },
+  "optionalDependencies": {
+    "@hytopia.com/assets": "^0.4.2"
+  }
+}

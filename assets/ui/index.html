@@ -1,0 +1,636 @@
+<!--
+  QB Target Throw - Game UI
+  HUD with score, timer, combo, power bar, and crosshair
+-->
+
+<script>
+  // Game state
+  let gameState = {
+    state: 'waiting',
+    score: 0,
+    combo: 0,
+    timeRemaining: 60,
+    chargePower: 0,
+    accuracy: 100,
+    roundNumber: 1
+  };
+
+  // Handle data from server
+  hytopia.onData(data => {
+    if (data.type === 'game_update') {
+      gameState = { ...gameState, ...data };
+      updateUI();
+    }
+  });
+
+  // Update all UI elements
+  function updateUI() {
+    // Update score
+    const scoreEl = document.getElementById('score-value');
+    if (scoreEl) scoreEl.textContent = gameState.score.toLocaleString();
+
+    // Update combo
+    const comboEl = document.getElementById('combo-value');
+    const comboContainer = document.getElementById('combo-container');
+    if (comboEl && comboContainer) {
+      comboEl.textContent = gameState.combo + 'x';
+      comboContainer.style.display = gameState.combo > 1 ? 'flex' : 'none';
+
+      // Add pulse animation on combo change
+      if (gameState.combo > 1) {
+        comboContainer.classList.remove('pulse');
+        void comboContainer.offsetWidth; // Trigger reflow
+        comboContainer.classList.add('pulse');
+      }
+    }
+
+    // Update timer
+    const timerEl = document.getElementById('timer-value');
+    if (timerEl) {
+      timerEl.textContent = gameState.timeRemaining;
+      timerEl.style.color = gameState.timeRemaining <= 10 ? '#ff4444' : '#ffffff';
+    }
+
+    // Update power bar
+    const powerFill = document.getElementById('power-fill');
+    if (powerFill) {
+      const percent = gameState.chargePower * 100;
+      powerFill.style.width = percent + '%';
+
+      // Color gradient based on power
+      if (percent < 33) {
+        powerFill.style.background = 'linear-gradient(90deg, #44ff44, #88ff44)';
+      } else if (percent < 66) {
+        powerFill.style.background = 'linear-gradient(90deg, #88ff44, #ffff44)';
+      } else {
+        powerFill.style.background = 'linear-gradient(90deg, #ffff44, #ff8844)';
+      }
+    }
+
+    // Update accuracy
+    const accuracyEl = document.getElementById('accuracy-value');
+    if (accuracyEl) accuracyEl.textContent = gameState.accuracy + '%';
+
+    // Update round number
+    const roundEl = document.getElementById('round-value');
+    if (roundEl) roundEl.textContent = 'Round ' + gameState.roundNumber;
+
+    // Handle different game states
+    const countdownEl = document.getElementById('countdown-overlay');
+    const gameOverEl = document.getElementById('game-over-overlay');
+    const waitingEl = document.getElementById('waiting-overlay');
+    const hudEl = document.getElementById('game-hud');
+
+    if (countdownEl) countdownEl.style.display = 'none';
+    if (gameOverEl) gameOverEl.style.display = 'none';
+    if (waitingEl) waitingEl.style.display = 'none';
+    if (hudEl) hudEl.style.display = 'flex';
+
+    switch (gameState.state) {
+      case 'waiting':
+        if (waitingEl) waitingEl.style.display = 'flex';
+        if (hudEl) hudEl.style.display = 'none';
+        break;
+      case 'countdown':
+        if (countdownEl) {
+          countdownEl.style.display = 'flex';
+          const countdownNum = document.getElementById('countdown-number');
+          if (countdownNum) {
+            countdownNum.textContent = Math.ceil(gameState.timeRemaining);
+            countdownNum.classList.remove('countdown-animate');
+            void countdownNum.offsetWidth;
+            countdownNum.classList.add('countdown-animate');
+          }
+        }
+        break;
+      case 'round_end':
+      case 'game_over':
+        if (gameOverEl) {
+          gameOverEl.style.display = 'flex';
+          const finalScore = document.getElementById('final-score');
+          const finalAccuracy = document.getElementById('final-accuracy');
+          if (finalScore) finalScore.textContent = gameState.score.toLocaleString();
+          if (finalAccuracy) finalAccuracy.textContent = gameState.accuracy + '%';
+        }
+        break;
+    }
+  }
+
+  // Mobile controls
+  document.addEventListener('DOMContentLoaded', () => {
+    // Mobile throw button
+    const mobileThrowButton = document.getElementById('mobile-throw-button');
+    if (mobileThrowButton) {
+      mobileThrowButton.addEventListener('touchstart', e => {
+        e.preventDefault();
+        mobileThrowButton.classList.add('active');
+        hytopia.pressInput('ml', true);
+      });
+
+      mobileThrowButton.addEventListener('touchend', e => {
+        e.preventDefault();
+        mobileThrowButton.classList.remove('active');
+        hytopia.pressInput('ml', false);
+      });
+    }
+  });
+
+  // Initial UI update
+  setTimeout(updateUI, 100);
+</script>
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;700&display=swap');
+
+  * {
+    box-sizing: border-box;
+  }
+
+  /* Game HUD Container */
+  #game-hud {
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    padding: 20px;
+    pointer-events: none;
+  }
+
+  /* Top Bar - Score, Timer, Round */
+  .top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    width: 100%;
+  }
+
+  /* Score Panel */
+  .score-panel {
+    background: linear-gradient(135deg, rgba(0, 50, 0, 0.85), rgba(0, 30, 0, 0.9));
+    border: 2px solid rgba(0, 255, 100, 0.5);
+    border-radius: 10px;
+    padding: 15px 25px;
+    min-width: 200px;
+    box-shadow: 0 4px 15px rgba(0, 255, 100, 0.2), inset 0 0 30px rgba(0, 255, 100, 0.05);
+  }
+
+  .score-label {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 14px;
+    color: rgba(0, 255, 100, 0.8);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+  }
+
+  #score-value {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 42px;
+    font-weight: 900;
+    color: #ffffff;
+    text-shadow: 0 0 20px rgba(0, 255, 100, 0.8);
+  }
+
+  /* Timer Panel */
+  .timer-panel {
+    background: linear-gradient(135deg, rgba(50, 50, 50, 0.85), rgba(30, 30, 30, 0.9));
+    border: 2px solid rgba(255, 200, 0, 0.5);
+    border-radius: 10px;
+    padding: 15px 30px;
+    text-align: center;
+    box-shadow: 0 4px 15px rgba(255, 200, 0, 0.2);
+  }
+
+  .timer-label {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 12px;
+    color: rgba(255, 200, 0, 0.8);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+  }
+
+  #timer-value {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 48px;
+    font-weight: 900;
+    color: #ffffff;
+    text-shadow: 0 0 20px rgba(255, 200, 0, 0.8);
+  }
+
+  #round-value {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 14px;
+    color: rgba(255, 200, 0, 0.7);
+    margin-top: 5px;
+  }
+
+  /* Accuracy Panel */
+  .accuracy-panel {
+    background: linear-gradient(135deg, rgba(50, 0, 50, 0.85), rgba(30, 0, 30, 0.9));
+    border: 2px solid rgba(200, 100, 255, 0.5);
+    border-radius: 10px;
+    padding: 15px 25px;
+    text-align: right;
+    min-width: 150px;
+    box-shadow: 0 4px 15px rgba(200, 100, 255, 0.2);
+  }
+
+  .accuracy-label {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 14px;
+    color: rgba(200, 100, 255, 0.8);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+  }
+
+  #accuracy-value {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 32px;
+    font-weight: 700;
+    color: #ffffff;
+    text-shadow: 0 0 15px rgba(200, 100, 255, 0.8);
+  }
+
+  /* Combo Display */
+  #combo-container {
+    display: none;
+    position: fixed;
+    top: 50%;
+    right: 40px;
+    transform: translateY(-50%);
+    flex-direction: column;
+    align-items: center;
+    background: linear-gradient(135deg, rgba(255, 100, 0, 0.9), rgba(200, 50, 0, 0.9));
+    border: 3px solid rgba(255, 200, 0, 0.8);
+    border-radius: 15px;
+    padding: 20px 30px;
+    box-shadow: 0 0 30px rgba(255, 100, 0, 0.5);
+  }
+
+  #combo-container.pulse {
+    animation: combo-pulse 0.3s ease-out;
+  }
+
+  @keyframes combo-pulse {
+    0% { transform: translateY(-50%) scale(1); }
+    50% { transform: translateY(-50%) scale(1.2); }
+    100% { transform: translateY(-50%) scale(1); }
+  }
+
+  .combo-label {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.9);
+    text-transform: uppercase;
+    letter-spacing: 3px;
+  }
+
+  #combo-value {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 48px;
+    font-weight: 900;
+    color: #ffffff;
+    text-shadow: 0 0 20px rgba(255, 255, 0, 1);
+  }
+
+  /* Power Bar */
+  .power-bar-container {
+    position: fixed;
+    bottom: 100px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 300px;
+    height: 25px;
+    background: rgba(0, 0, 0, 0.7);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+  }
+
+  #power-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #44ff44, #88ff44);
+    border-radius: 10px;
+    transition: width 0.05s linear;
+    box-shadow: 0 0 15px rgba(100, 255, 100, 0.5);
+  }
+
+  .power-label {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 12px;
+    color: white;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+  }
+
+  /* Crosshair */
+  .crosshair {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 40px;
+    height: 40px;
+    pointer-events: none;
+  }
+
+  .crosshair::before,
+  .crosshair::after {
+    content: '';
+    position: absolute;
+    background: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
+  }
+
+  .crosshair::before {
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 2px;
+    transform: translateY(-50%);
+  }
+
+  .crosshair::after {
+    left: 50%;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    transform: translateX(-50%);
+  }
+
+  .crosshair-dot {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 6px;
+    height: 6px;
+    background: #ff4444;
+    border-radius: 50%;
+    box-shadow: 0 0 10px rgba(255, 68, 68, 0.8);
+  }
+
+  /* Countdown Overlay */
+  #countdown-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+  }
+
+  #countdown-number {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 150px;
+    font-weight: 900;
+    color: #ffffff;
+    text-shadow: 0 0 50px rgba(0, 255, 100, 1), 0 0 100px rgba(0, 255, 100, 0.5);
+  }
+
+  #countdown-number.countdown-animate {
+    animation: countdown-pop 0.5s ease-out;
+  }
+
+  @keyframes countdown-pop {
+    0% { transform: scale(0.5); opacity: 0; }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  /* Game Over Overlay */
+  #game-over-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.85);
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    z-index: 100;
+  }
+
+  .game-over-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 64px;
+    font-weight: 900;
+    color: #ffffff;
+    text-shadow: 0 0 30px rgba(255, 200, 0, 1);
+    margin-bottom: 30px;
+  }
+
+  .final-stats {
+    display: flex;
+    gap: 60px;
+    margin-bottom: 40px;
+  }
+
+  .stat-box {
+    text-align: center;
+    background: rgba(50, 50, 50, 0.8);
+    border: 2px solid rgba(255, 200, 0, 0.5);
+    border-radius: 15px;
+    padding: 20px 40px;
+  }
+
+  .stat-box .label {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 14px;
+    color: rgba(255, 200, 0, 0.8);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+  }
+
+  .stat-box .value {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 48px;
+    font-weight: 900;
+    color: #ffffff;
+  }
+
+  .next-round-text {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 18px;
+    color: rgba(255, 255, 255, 0.7);
+    letter-spacing: 2px;
+  }
+
+  /* Waiting Overlay */
+  #waiting-overlay {
+    display: flex;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    z-index: 100;
+  }
+
+  .waiting-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 48px;
+    font-weight: 900;
+    color: #ffffff;
+    text-shadow: 0 0 30px rgba(0, 255, 100, 1);
+    margin-bottom: 20px;
+  }
+
+  .waiting-subtitle {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 24px;
+    color: rgba(255, 255, 255, 0.8);
+  }
+
+  /* Mobile Controls */
+  .mobile-controls {
+    display: none;
+  }
+
+  body.mobile .mobile-controls {
+    display: flex;
+    gap: 14px;
+    position: fixed;
+    bottom: 40px;
+    right: 40px;
+  }
+
+  .mobile-button {
+    background-color: rgba(0, 100, 0, 0.7);
+    border: 2px solid rgba(0, 255, 100, 0.5);
+    border-radius: 50%;
+    align-items: center;
+    justify-content: center;
+    display: flex;
+    width: 70px;
+    height: 70px;
+    transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: auto !important;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 12px;
+    font-weight: bold;
+    color: rgba(255, 255, 255, 0.9);
+    text-transform: uppercase;
+  }
+
+  .mobile-button.active {
+    transform: scale(0.92);
+    background-color: rgba(0, 150, 0, 0.9);
+    box-shadow: 0 0 20px rgba(0, 255, 100, 0.5);
+  }
+
+  /* Instructions */
+  .instructions {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.6);
+    background: rgba(0, 0, 0, 0.5);
+    padding: 10px 15px;
+    border-radius: 8px;
+  }
+
+  body.mobile .instructions {
+    display: none;
+  }
+</style>
+
+<!-- Game HUD -->
+<div id="game-hud">
+  <div class="top-bar">
+    <!-- Score Panel -->
+    <div class="score-panel">
+      <div class="score-label">Score</div>
+      <div id="score-value">0</div>
+    </div>
+
+    <!-- Timer Panel -->
+    <div class="timer-panel">
+      <div class="timer-label">Time</div>
+      <div id="timer-value">60</div>
+      <div id="round-value">Round 1</div>
+    </div>
+
+    <!-- Accuracy Panel -->
+    <div class="accuracy-panel">
+      <div class="accuracy-label">Accuracy</div>
+      <div id="accuracy-value">100%</div>
+    </div>
+  </div>
+</div>
+
+<!-- Combo Display -->
+<div id="combo-container">
+  <div class="combo-label">Combo</div>
+  <div id="combo-value">2x</div>
+</div>
+
+<!-- Power Bar -->
+<div class="power-bar-container">
+  <div id="power-fill"></div>
+  <span class="power-label">Hold to Charge</span>
+</div>
+
+<!-- Crosshair -->
+<div class="crosshair">
+  <div class="crosshair-dot"></div>
+</div>
+
+<!-- Countdown Overlay -->
+<div id="countdown-overlay">
+  <div id="countdown-number">3</div>
+</div>
+
+<!-- Game Over / Round End Overlay -->
+<div id="game-over-overlay">
+  <div class="game-over-title">ROUND COMPLETE!</div>
+  <div class="final-stats">
+    <div class="stat-box">
+      <div class="label">Final Score</div>
+      <div class="value" id="final-score">0</div>
+    </div>
+    <div class="stat-box">
+      <div class="label">Accuracy</div>
+      <div class="value" id="final-accuracy">0%</div>
+    </div>
+  </div>
+  <div class="next-round-text">Next round starting soon...</div>
+</div>
+
+<!-- Waiting Overlay -->
+<div id="waiting-overlay">
+  <div class="waiting-title">QB TARGET THROW</div>
+  <div class="waiting-subtitle">Get ready to throw!</div>
+</div>
+
+<!-- Mobile Controls -->
+<div class="mobile-controls">
+  <a id="mobile-throw-button" class="mobile-button">
+    THROW
+  </a>
+</div>
+
+<!-- Instructions -->
+<div class="instructions">
+  Hold LEFT CLICK to charge | Release to throw | Hit targets for points!
+</div>

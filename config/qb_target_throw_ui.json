@@ -1,0 +1,85 @@
+{
+  "gameId": "qb_target_throw",
+  "uiConfigs": [
+    {
+      "id": "qb_target_throw_ui_default",
+      "description": "HUD layout for QB Target Throw mode.",
+      "elements": [
+        {
+          "id": "score_text",
+          "type": "text",
+          "anchor": "top_left",
+          "offset": [
+            20,
+            20
+          ],
+          "textTemplate": "Score: {score}",
+          "fontSize": 24
+        },
+        {
+          "id": "timer_text",
+          "type": "text",
+          "anchor": "top_center",
+          "offset": [
+            0,
+            20
+          ],
+          "textTemplate": "Time: {timeRemaining}",
+          "fontSize": 24
+        },
+        {
+          "id": "multiplier_text",
+          "type": "text",
+          "anchor": "top_left",
+          "offset": [
+            20,
+            60
+          ],
+          "textTemplate": "Multiplier: x{multiplier}",
+          "fontSize": 20
+        },
+        {
+          "id": "accuracy_text",
+          "type": "text",
+          "anchor": "top_left",
+          "offset": [
+            20,
+            100
+          ],
+          "textTemplate": "Accuracy: {accuracyPercent}%",
+          "fontSize": 20
+        },
+        {
+          "id": "power_bar",
+          "type": "progress_bar",
+          "anchor": "bottom_center",
+          "offset": [
+            0,
+            -40
+          ],
+          "size": [
+            300,
+            20
+          ],
+          "minValue": 0,
+          "maxValue": 1,
+          "initialValue": 0
+        },
+        {
+          "id": "aim_crosshair",
+          "type": "image",
+          "anchor": "center",
+          "offset": [
+            0,
+            0
+          ],
+          "size": [
+            32,
+            32
+          ],
+          "spriteAssetId": "ui/crosshair.png"
+        }
+      ]
+    }
+  ]
+}

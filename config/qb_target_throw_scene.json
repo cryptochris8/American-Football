@@ -1,0 +1,43 @@
+{
+  "gameId": "qb_target_throw",
+  "sceneId": "qb_target_throw_practice_field",
+  "description": "Practice field scene for QB Target Throw mini-game.",
+  "onLoad": {
+    "spawnEntities": [
+      "field_root",
+      "player_qb",
+      "game_controller",
+      "ui_canvas_qb_throw"
+    ],
+    "initializeSystems": [
+      "RoundStateInitSystem",
+      "InputAimSystem",
+      "ThrowChargeSystem",
+      "ThrowSpawnBallSystem",
+      "BallPhysicsSystem",
+      "BallTargetCollisionSystem",
+      "ScoreAndComboSystem",
+      "TargetSpawnSystem",
+      "TargetMovementSystem",
+      "TargetLifetimeSystem",
+      "RoundTimerSystem",
+      "UIHudUpdateSystem",
+      "QBTutorialSystem"
+    ],
+    "setPlayerControlledEntity": "player_qb",
+    "cameraSetup": {
+      "mode": "follow_third_person",
+      "targetEntityId": "player_qb",
+      "offset": [
+        0,
+        3.0,
+        -8.0
+      ],
+      "lookAtOffset": [
+        0,
+        1.5,
+        8.0
+      ]
+    }
+  }
+}

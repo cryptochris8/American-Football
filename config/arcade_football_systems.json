@@ -1,0 +1,55 @@
+{
+  "gameId": "arcade_football",
+  "systems": [
+    {
+      "id": "PlayCallSystem",
+      "order": 10,
+      "description": "Handles play selection UI and picks offensive/defensive plays.",
+      "config": {
+        "playbookConfigId": "arcade_football_default_playbook"
+      }
+    },
+    {
+      "id": "SnapSystem",
+      "order": 20,
+      "description": "Snaps the ball and starts the play.",
+      "config": {}
+    },
+    {
+      "id": "RouteSystem",
+      "order": 30,
+      "description": "Moves receivers and defenders along waypoints.",
+      "config": {}
+    },
+    {
+      "id": "BallCarrySystem",
+      "order": 40,
+      "description": "Moves the ball carrier based on player input and simple constraints.",
+      "config": {}
+    },
+    {
+      "id": "DefenseAISystem",
+      "order": 50,
+      "description": "Simple AI to chase ball carrier and defend zones/routes.",
+      "config": {}
+    },
+    {
+      "id": "TackleSystem",
+      "order": 60,
+      "description": "Detects collisions between defenders and ball carrier and ends the play.",
+      "config": {}
+    },
+    {
+      "id": "DownAndDistanceSystem",
+      "order": 70,
+      "description": "Updates down, distance, yardline, and handles turnovers.",
+      "config": {}
+    },
+    {
+      "id": "ScoringSystem",
+      "order": 80,
+      "description": "Handles touchdowns, field goals, extra points, and final outcome.",
+      "config": {}
+    }
+  ]
+}

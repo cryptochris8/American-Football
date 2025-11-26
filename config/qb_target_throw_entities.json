@@ -1,0 +1,287 @@
+{
+  "gameId": "qb_target_throw",
+  "entities": [
+    {
+      "id": "player_qb",
+      "description": "Quarterback controlled by the player.",
+      "components": {
+        "Transform": {
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "rotation": [
+            0,
+            180,
+            0
+          ],
+          "scale": [
+            1,
+            1,
+            1
+          ]
+        },
+        "Model": {
+          "assetId": "models/qb_player.glb"
+        },
+        "InputController": {
+          "enabled": true,
+          "aimMode": "crosshair"
+        },
+        "QBStats": {
+          "baseThrowPower": 1.0,
+          "baseAccuracy": 1.0,
+          "maxChargeTimeSeconds": 1.0
+        }
+      }
+    },
+    {
+      "id": "football_projectile",
+      "description": "Football thrown by the QB.",
+      "components": {
+        "Transform": {
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            1,
+            1,
+            1
+          ]
+        },
+        "Model": {
+          "assetId": "models/football.glb"
+        },
+        "Projectile": {
+          "gravity": -9.8,
+          "maxLifetimeSeconds": 5.0,
+          "radius": 0.3
+        },
+        "Collision": {
+          "type": "sphere",
+          "radius": 0.3,
+          "collisionGroup": "ball",
+          "collidesWith": [
+            "target"
+          ]
+        },
+        "OwnedBy": {
+          "ownerEntityId": "player_qb"
+        }
+      }
+    },
+    {
+      "id": "target_basic",
+      "description": "Stationary target worth base points.",
+      "components": {
+        "Transform": {
+          "position": [
+            0,
+            1.8,
+            15
+          ],
+          "rotation": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            1,
+            1,
+            1
+          ]
+        },
+        "Model": {
+          "assetId": "models/target_basic.glb"
+        },
+        "Target": {
+          "targetType": "basic",
+          "basePointsShort": 50,
+          "basePointsMedium": 75,
+          "basePointsDeep": 100,
+          "depthShortMaxZ": 14.9,
+          "depthMediumMaxZ": 24.9
+        },
+        "Collision": {
+          "type": "box",
+          "halfExtents": [
+            0.7,
+            0.7,
+            0.2
+          ],
+          "collisionGroup": "target",
+          "collidesWith": [
+            "ball"
+          ]
+        }
+      }
+    },
+    {
+      "id": "target_moving",
+      "description": "Horizontally moving target.",
+      "components": {
+        "Transform": {
+          "position": [
+            -4,
+            1.8,
+            22
+          ],
+          "rotation": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            1,
+            1,
+            1
+          ]
+        },
+        "Model": {
+          "assetId": "models/target_moving.glb"
+        },
+        "Target": {
+          "targetType": "moving",
+          "basePointsShort": 100,
+          "basePointsMedium": 150,
+          "basePointsDeep": 200,
+          "depthShortMaxZ": 14.9,
+          "depthMediumMaxZ": 24.9
+        },
+        "Collision": {
+          "type": "box",
+          "halfExtents": [
+            0.7,
+            0.7,
+            0.2
+          ],
+          "collisionGroup": "target",
+          "collidesWith": [
+            "ball"
+          ]
+        },
+        "HorizontalMovement": {
+          "speed": 2.0,
+          "minX": -6.0,
+          "maxX": 6.0
+        }
+      }
+    },
+    {
+      "id": "target_bonus",
+      "description": "Bonus target that appears briefly and gives more points.",
+      "components": {
+        "Transform": {
+          "position": [
+            0,
+            2.5,
+            28
+          ],
+          "rotation": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            1.1,
+            1.1,
+            0.5
+          ]
+        },
+        "Model": {
+          "assetId": "models/target_bonus.glb"
+        },
+        "Target": {
+          "targetType": "bonus",
+          "basePointsShort": 150,
+          "basePointsMedium": 225,
+          "basePointsDeep": 300,
+          "depthShortMaxZ": 14.9,
+          "depthMediumMaxZ": 24.9
+        },
+        "Collision": {
+          "type": "box",
+          "halfExtents": [
+            0.9,
+            0.9,
+            0.3
+          ],
+          "collisionGroup": "target",
+          "collidesWith": [
+            "ball"
+          ]
+        },
+        "Lifetime": {
+          "maxLifetimeSeconds": 3.0
+        }
+      }
+    },
+    {
+      "id": "field_root",
+      "description": "Field root entity containing field mesh.",
+      "components": {
+        "Transform": {
+          "position": [
+            0,
+            0,
+            15
+          ],
+          "rotation": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            1,
+            1,
+            1
+          ]
+        },
+        "Model": {
+          "assetId": "models/field_short.glb"
+        }
+      }
+    },
+    {
+      "id": "game_controller",
+      "description": "Stores overall game state for the QB Target Throw mode.",
+      "components": {
+        "GameState": {
+          "modeId": "qb_target_throw",
+          "roundDurationSeconds": 60,
+          "timeRemainingSeconds": 60,
+          "score": 0,
+          "multiplier": 1.0,
+          "multiplierMax": 3.0,
+          "multiplierStep": 0.1,
+          "currentStreak": 0,
+          "bestStreak": 0,
+          "totalThrows": 0,
+          "successfulHits": 0,
+          "isRoundActive": false
+        },
+        "TargetSpawnController": {
+          "currentWaveIndex": 0,
+          "waveConfigId": "default_easy_to_hard"
+        }
+      }
+    },
+    {
+      "id": "ui_canvas_qb_throw",
+      "description": "HUD UI for QB Target Throw.",
+      "components": {
+        "UICanvas": {
+          "elementsConfigId": "qb_target_throw_ui_default"
+        }
+      }
+    }
+  ]
+}
