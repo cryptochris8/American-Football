@@ -11,24 +11,26 @@
         "crosshairEntityTag": "aim_crosshair",
         "sensitivity": 1.0,
         "clampX": [
-          -8.0,
-          8.0
+          -6.0,
+          6.0
         ],
         "clampZ": [
           8.0,
-          32.0
+          34.0
         ],
         "laneMode": {
           "enabled": true,
           "lanesX": [
             -4.0,
+            -2.0,
             0.0,
+            2.0,
             4.0
           ],
           "depthBandsZ": [
-            10.0,
+            12.0,
             20.0,
-            30.0
+            28.0
           ],
           "laneKeys": {
             "left": "KeyA",
@@ -86,21 +88,33 @@
     {
       "id": "BallTargetCollisionSystem",
       "order": 50,
-      "description": "Detects collisions between footballs and targets, then awards points.",
+      "description": "Detects collisions between footballs and receivers and awards points.",
       "config": {
         "ballCollisionGroup": "ball",
-        "targetCollisionGroup": "target",
+        "receiverCollisionGroup": "receiver",
         "destroyBallOnHit": true,
-        "triggerTargetHitEvent": true
+        "triggerEventId": "OnReceiverHit"
+      }
+    },
+    {
+      "id": "BallDefenderCollisionSystem",
+      "order": 51,
+      "description": "Detects collisions between footballs and defenders and applies penalties.",
+      "config": {
+        "ballCollisionGroup": "ball",
+        "defenderCollisionGroup": "defender",
+        "destroyBallOnHit": true,
+        "triggerEventId": "OnDefenderBlock"
       }
     },
     {
       "id": "ScoreAndComboSystem",
       "order": 60,
-      "description": "Updates score, multiplier, streaks, and accuracy.",
+      "description": "Updates score, multiplier, streaks, blocks, and accuracy.",
       "config": {
         "gameControllerId": "game_controller",
-        "onHitEventId": "OnTargetHit",
+        "onCompletionEventId": "OnReceiverHit",
+        "onBlockEventId": "OnDefenderBlock",
         "onMissEventId": "OnThrowMiss",
         "multiplierMax": 3.0,
         "multiplierStepOnHit": 0.1,
@@ -111,27 +125,28 @@
       }
     },
     {
-      "id": "TargetSpawnSystem",
+      "id": "LaneActorSpawnSystem",
       "order": 70,
-      "description": "Spawns targets according to wave definitions.",
+      "description": "Spawns receivers and defenders into lanes according to wave definitions.",
       "config": {
         "gameControllerId": "game_controller",
         "spawnConfigId": "qb_target_throw_spawning_default",
-        "maxActiveTargets": 6
+        "maxActiveReceivers": 7,
+        "maxActiveDefenders": 5
       }
     },
     {
-      "id": "TargetMovementSystem",
+      "id": "LaneMovementSystem",
       "order": 80,
-      "description": "Moves targets with HorizontalMovement component.",
+      "description": "Moves all lane actors (receivers and defenders) horizontally.",
       "config": {
         "deltaTimeSource": "engine"
       }
     },
     {
-      "id": "TargetLifetimeSystem",
+      "id": "LifetimeSystem",
       "order": 90,
-      "description": "Removes bonus targets after lifetime expires.",
+      "description": "Removes actors with Lifetime when their timer expires.",
       "config": {
         "deltaTimeSource": "engine"
       }
@@ -150,7 +165,7 @@
     {
       "id": "UIHudUpdateSystem",
       "order": 110,
-      "description": "Refreshes HUD values (score, timer, multiplier, accuracy, power bar).",
+      "description": "Refreshes HUD values (score, timer, multiplier, accuracy, blocks).",
       "config": {
         "gameControllerId": "game_controller",
         "uiCanvasId": "ui_canvas_qb_throw"
