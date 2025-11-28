@@ -28,6 +28,20 @@ import { GameManager } from './src/GameManager';
 
 // Store references
 let gameManager: GameManager;
+let musicStarted = false;
+let gameWorld: World;
+
+// Start background music - called on first user interaction
+function startBackgroundMusic(): void {
+  if (musicStarted || !gameWorld) return;
+  musicStarted = true;
+  new Audio({
+    uri: 'audio/music/champions.mp3',
+    loop: true,
+    volume: 0.08,
+  }).play(gameWorld);
+  console.log('[Server] Background music started (triggered by user input)');
+}
 
 /**
  * Custom QB Player Entity - extends DefaultPlayerEntity
@@ -74,6 +88,9 @@ class QBPlayerEntity extends DefaultPlayerEntity {
       // Start charging
       this.isCharging = true;
       this.gameManager.startCharge(player);
+
+      // Start music on first user interaction (browser autoplay policy)
+      startBackgroundMusic();
     } else if (!input.ml && this.isCharging) {
       // Release throw
       this.isCharging = false;
@@ -102,6 +119,9 @@ startServer(world => {
   console.log('=================================');
   console.log('  QB TARGET THROW - Starting...');
   console.log('=================================');
+
+  // Save world reference for audio
+  gameWorld = world;
 
   // Enable debug rendering for development (comment out for production)
   // world.simulation.enableDebugRendering(true);
@@ -181,13 +201,6 @@ startServer(world => {
     console.log('[Debug] Time Remaining:', state.timeRemaining);
     world.chatManager.sendPlayerMessage(player, `State: ${state.state}, Targets: ${state.activeTargets.size}, Balls: ${state.activeBalls.size}`, '888888');
   });
-
-  // Play background music
-  new Audio({
-    uri: 'audio/music/hytopia-main-theme.mp3',
-    loop: true,
-    volume: 0.08,
-  }).play(world);
 
   console.log('[Server] QB Target Throw initialized!');
 });

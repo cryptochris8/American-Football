@@ -139,14 +139,28 @@ const RECEIVER_ARCHETYPES: Record<string, ReceiverArchetype> = {
 // ============================================
 // Defender Archetypes
 // ============================================
-// Football player model is ~48 units tall, scale 0.055 = ~2.6m (with arms raised blocking)
+// Using Hytopia player model with American Football skins from AthleteDomains
+// Player model at scale 1.0 is roughly human-sized (~1.8m)
+const DEFENDER_SKINS = [
+  'skins/football/defender_1.png',
+  'skins/football/defender_2.png',
+  'skins/football/defender_3.png',
+  'skins/football/defender_4.png',
+  'skins/football/defender_5.png',
+  'skins/football/defender_6.png',
+  'skins/football/defender_7.png',
+  'skins/football/defender_8.png',
+  'skins/football/defender_9.png',
+  'skins/football/defender_10.png',
+];
+
 const DEFENDER_ARCHETYPES: Record<string, DefenderArchetype> = {
   defender_obstacle: {
     id: 'defender_obstacle',
     defenderType: DefenderType.STANDARD,
     blockWeight: 1.0,
     modelUri: 'models/defender/scene.gltf',
-    modelScale: 0.055, // ~2.6m tall player (representing blocking reach)
+    modelScale: 0.055, // ~2.6m tall player
     collisionHalfExtents: { x: 0.6, y: 1.3, z: 0.4 },
     laneMovement: {
       speed: 2.5,
@@ -607,14 +621,14 @@ export class GameManager {
 
     const defenderId = `defender_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-    // Create entity with 3D model (no rigid body to avoid physics issues)
+    // Create defender entity with cartoon football player model
     const defenderEntity = new Entity({
       name: defenderId,
       modelUri: archetype.modelUri,
       modelScale: archetype.modelScale,
     });
 
-    defenderEntity.spawn(this.world, { x: laneX, y: 1, z: depthZ }); // Y=1 to be on top of ground blocks
+    defenderEntity.spawn(this.world, { x: laneX, y: 1, z: depthZ });
 
     const direction = Math.random() > 0.5 ? 1 : -1;
 
