@@ -274,6 +274,32 @@ const INTERCEPTION_CONFIG = {
   soundVolume: 0.5,
 };
 
+// Throw sound config
+const THROW_SOUND_CONFIG = {
+  soundUri: 'audio/sfx/ball-wind.wav',
+  soundVolume: 0.6,
+};
+
+// Crowd cheer config for streaks
+const CROWD_CHEER_CONFIG = {
+  slightCheer: {
+    soundUri: 'audio/sfx/slight-cheer.wav',
+    soundVolume: 0.5,
+    streakThreshold: 3,  // Plays at 3 hits in a row
+  },
+  largeCheer: {
+    soundUri: 'audio/sfx/large-cheer.wav',
+    soundVolume: 0.7,
+    streakThreshold: 5,  // Plays at 5 hits in a row
+  },
+};
+
+// Ball ground hit sound config
+const BALL_GROUND_CONFIG = {
+  soundUri: 'audio/sfx/ball-ground.wav',
+  soundVolume: 0.5,
+};
+
 const MAX_ACTIVE_RECEIVERS = 7;
 const MAX_ACTIVE_DEFENDERS = 5;
 const COUNTDOWN_DURATION = 3;
@@ -764,6 +790,7 @@ export class GameManager {
       if (!ball.hasHitGround && ballPos.y <= 1.3) {
         ball.hasHitGround = true;
         console.log(`[GameManager] Football hit the ground - can no longer score`);
+        this.playBallGroundSound();
       }
 
       // BallTargetCollisionSystem - check receiver collisions (only if ball hasn't hit ground)
@@ -888,6 +915,9 @@ export class GameManager {
 
     console.log(`[GameManager] Receiver hit! +${points} pts (${this.gameState.multiplier.toFixed(1)}x multiplier, ${this.gameState.currentStreak} streak)`);
 
+    // Check for streak-based crowd cheers
+    this.checkStreakCheers(this.gameState.currentStreak);
+
     // Remove receiver and ball
     if (receiver.entity.isSpawned) receiver.entity.despawn();
     this.gameState.activeReceivers.delete(receiverId);
@@ -965,6 +995,64 @@ export class GameManager {
     } catch (error) {
       // Sound file may not exist yet, log but don't crash
       console.log('[GameManager] Interception sound not found, skipping audio');
+    }
+  }
+
+  private playThrowSound(): void {
+    try {
+      new Audio({
+        uri: THROW_SOUND_CONFIG.soundUri,
+        volume: THROW_SOUND_CONFIG.soundVolume,
+      }).play(this.world);
+    } catch (error) {
+      // Sound file may not exist yet, log but don't crash
+      console.log('[GameManager] Throw sound not found, skipping audio');
+    }
+  }
+
+  private playSlightCheer(): void {
+    try {
+      new Audio({
+        uri: CROWD_CHEER_CONFIG.slightCheer.soundUri,
+        volume: CROWD_CHEER_CONFIG.slightCheer.soundVolume,
+      }).play(this.world);
+      console.log('[GameManager] Slight crowd cheer! 3 hits in a row!');
+    } catch (error) {
+      console.log('[GameManager] Slight cheer sound not found, skipping audio');
+    }
+  }
+
+  private playLargeCheer(): void {
+    try {
+      new Audio({
+        uri: CROWD_CHEER_CONFIG.largeCheer.soundUri,
+        volume: CROWD_CHEER_CONFIG.largeCheer.soundVolume,
+      }).play(this.world);
+      console.log('[GameManager] Large crowd cheer! 5 hits in a row!');
+    } catch (error) {
+      console.log('[GameManager] Large cheer sound not found, skipping audio');
+    }
+  }
+
+  private checkStreakCheers(streak: number): void {
+    // Play large cheer at exactly 5 (and every 5 after: 10, 15, etc.)
+    if (streak > 0 && streak % CROWD_CHEER_CONFIG.largeCheer.streakThreshold === 0) {
+      this.playLargeCheer();
+    }
+    // Play slight cheer at exactly 3 (but not if we're at a large cheer milestone)
+    else if (streak === CROWD_CHEER_CONFIG.slightCheer.streakThreshold) {
+      this.playSlightCheer();
+    }
+  }
+
+  private playBallGroundSound(): void {
+    try {
+      new Audio({
+        uri: BALL_GROUND_CONFIG.soundUri,
+        volume: BALL_GROUND_CONFIG.soundVolume,
+      }).play(this.world);
+    } catch (error) {
+      console.log('[GameManager] Ball ground sound not found, skipping audio');
     }
   }
 
@@ -1116,6 +1204,9 @@ export class GameManager {
     };
 
     footballEntity.spawn(this.world, spawnPos);
+
+    // Play throw sound effect
+    this.playThrowSound();
 
     const ballData: FootballData = {
       id: ballId,
