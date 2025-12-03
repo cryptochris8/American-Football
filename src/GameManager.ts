@@ -304,6 +304,101 @@ const MAX_ACTIVE_RECEIVERS = 7;
 const MAX_ACTIVE_DEFENDERS = 5;
 const COUNTDOWN_DURATION = 3;
 
+// Spiral rotation config
+const SPIRAL_CONFIG = {
+  rotationsPerSecond: 8, // How fast the football spins (8 rotations/sec = nice visible spiral)
+  radiansPerSecond: 8 * Math.PI * 2, // ~50 rad/sec
+};
+
+// ============================================
+// Quaternion Helper Functions
+// ============================================
+
+type Quat = { x: number; y: number; z: number; w: number };
+type Vec3 = { x: number; y: number; z: number };
+
+/**
+ * Creates a quaternion that aligns the +X axis with a direction vector.
+ * The football model's nose points along +X, so this orients the nose toward the velocity.
+ */
+function createAlignmentQuaternion(direction: Vec3): Quat {
+  // Normalize direction
+  const len = Math.sqrt(direction.x * direction.x + direction.y * direction.y + direction.z * direction.z);
+  if (len < 0.0001) {
+    return { x: 0, y: 0, z: 0, w: 1 }; // Identity if no direction
+  }
+
+  const dx = direction.x / len;
+  const dy = direction.y / len;
+  const dz = direction.z / len;
+
+  // We want to rotate +X (1, 0, 0) to (dx, dy, dz)
+  // Using the half-vector method: q = normalize(1 + dot, cross)
+  // A = (1, 0, 0), B = (dx, dy, dz)
+  // dot = A·B = dx
+  // cross = A×B = (0, -dz, dy)
+
+  const dot = dx;
+
+  // Handle the case where direction is opposite to +X (dot ≈ -1)
+  if (dot < -0.9999) {
+    // 180° rotation around Y axis
+    return { x: 0, y: 1, z: 0, w: 0 };
+  }
+
+  // q = (w: 1 + dot, x: 0, y: -dz, z: dy) then normalize
+  let qw = 1 + dot;
+  let qx = 0;
+  let qy = -dz;
+  let qz = dy;
+
+  // Normalize
+  const qlen = Math.sqrt(qw * qw + qx * qx + qy * qy + qz * qz);
+  qw /= qlen;
+  qx /= qlen;
+  qy /= qlen;
+  qz /= qlen;
+
+  return { x: qx, y: qy, z: qz, w: qw };
+}
+
+/**
+ * Creates a quaternion for rotation around an axis by an angle.
+ */
+function createAxisAngleQuaternion(axis: Vec3, angle: number): Quat {
+  // Normalize axis
+  const len = Math.sqrt(axis.x * axis.x + axis.y * axis.y + axis.z * axis.z);
+  if (len < 0.0001) {
+    return { x: 0, y: 0, z: 0, w: 1 };
+  }
+
+  const ax = axis.x / len;
+  const ay = axis.y / len;
+  const az = axis.z / len;
+
+  const halfAngle = angle / 2;
+  const s = Math.sin(halfAngle);
+
+  return {
+    x: ax * s,
+    y: ay * s,
+    z: az * s,
+    w: Math.cos(halfAngle),
+  };
+}
+
+/**
+ * Multiplies two quaternions: result = a * b
+ */
+function multiplyQuaternions(a: Quat, b: Quat): Quat {
+  return {
+    w: a.w * b.w - a.x * b.x - a.y * b.y - a.z * b.z,
+    x: a.w * b.x + a.x * b.w + a.y * b.z - a.z * b.y,
+    y: a.w * b.y - a.x * b.z + a.y * b.w + a.z * b.x,
+    z: a.w * b.z + a.x * b.y - a.y * b.x + a.z * b.w,
+  };
+}
+
 export class GameManager {
   private world: World;
   private gameState: MegatouchGameState;
@@ -785,6 +880,30 @@ export class GameManager {
         return;
       }
 
+      // Update spiral rotation
+      // Calculate current velocity: v = v0 + gravity * t
+      const currentVelocity = {
+        x: ball.initialVelocity.x,
+        y: ball.initialVelocity.y + THROW_CONFIG.gravity * elapsed,
+        z: ball.initialVelocity.z,
+      };
+
+      // Update spiral angle
+      ball.spiralAngle += SPIRAL_CONFIG.radiansPerSecond * dt;
+
+      // Create alignment quaternion (points nose toward velocity)
+      const alignQuat = createAlignmentQuaternion(currentVelocity);
+
+      // Create spiral rotation around the velocity axis (local X after alignment)
+      // We rotate around (1, 0, 0) in local space, which after alignment is the velocity direction
+      const spiralQuat = createAxisAngleQuaternion({ x: 1, y: 0, z: 0 }, ball.spiralAngle);
+
+      // Combine: first align, then spiral around the aligned axis
+      const finalQuat = multiplyQuaternions(alignQuat, spiralQuat);
+
+      // Apply rotation to entity
+      ball.entity.setRotation(finalQuat);
+
       // Check if ball has hit the ground (Y <= 1.2 accounts for ball radius + ground at Y=1)
       // Once grounded, ball can no longer score points
       if (!ball.hasHitGround && ballPos.y <= 1.3) {
@@ -1162,14 +1281,9 @@ export class GameManager {
   private spawnFootball(player: Player, position: { x: number; y: number; z: number }, velocity: { x: number; y: number; z: number }): void {
     const ballId = `football_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-    const yaw = Math.atan2(-velocity.x, -velocity.z) + Math.PI / 2;
-    const halfYaw = yaw / 2;
-    const rotation = {
-      x: 0,
-      y: Math.sin(halfYaw),
-      z: 0,
-      w: Math.cos(halfYaw),
-    };
+    // Calculate initial rotation using proper quaternion alignment
+    // This aligns the football's nose (+X axis) with the velocity direction
+    const initialRotation = createAlignmentQuaternion(velocity);
 
     const footballEntity = new Entity({
       name: ballId,
@@ -1180,8 +1294,8 @@ export class GameManager {
         linearVelocity: velocity,
         gravityScale: 1.0,
         ccdEnabled: true,
-        enabledRotations: { x: false, y: false, z: false },
-        rotation,
+        enabledRotations: { x: false, y: false, z: false }, // We control rotation manually for spiral
+        rotation: initialRotation,
         colliders: [
           {
             shape: ColliderShape.BALL,
@@ -1215,6 +1329,7 @@ export class GameManager {
       thrownBy: player,
       initialVelocity: velocity,
       hasHitGround: false,
+      spiralAngle: 0, // Start with no spiral rotation
     };
 
     this.gameState.activeBalls.set(ballId, ballData);

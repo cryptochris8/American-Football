@@ -1,11 +1,14 @@
 /**
- * QB Target Throw - American Football Mini-Game
+ * HySports Football - Multi-Round American Football Mini-Game
  *
- * A football throwing arcade game where players aim and throw
- * footballs at targets to score points. Features combo system,
- * multiple target types, and increasing difficulty.
+ * A competitive football arcade game featuring 5 unique game modes:
+ * 1. QB Target Throw - Throw at moving targets
+ * 2. Receiver Run - Throw to AI receivers running routes
+ * 3. QB Accuracy Gauntlet - Multiple targets, hit as many as possible
+ * 4. Field Goal Frenzy - Kick field goals in wind
+ * 5. Hail Mary - Deep bombs for maximum points
  *
- * This is Phase 1 of a larger American Football game inspired by Tecmo Bowl.
+ * Multiplayer competitive with leaderboards and round scoring.
  */
 
 import {
@@ -24,12 +27,16 @@ import {
 } from 'hytopia';
 
 import worldMap from './assets/map.json';
-import { GameManager } from './src/GameManager';
+import { MultiRoundGameManager } from './src/MultiRoundGameManager';
+import { GameRound, MultiRoundGameState, ROUND_CONFIGS } from './src/types/MultiRoundTypes';
 
 // Store references
-let gameManager: GameManager;
+let gameManager: MultiRoundGameManager;
 let musicStarted = false;
 let gameWorld: World;
+
+// Track player entities for round change updates
+const playerEntities: Map<string, MultiRoundPlayerEntity> = new Map();
 
 // Start background music - called on first user interaction
 function startBackgroundMusic(): void {
@@ -44,14 +51,14 @@ function startBackgroundMusic(): void {
 }
 
 /**
- * Custom QB Player Entity - extends DefaultPlayerEntity
- * Handles aiming and throwing while keeping all default physics
+ * Multi-Round Player Entity - adapts to different game modes
+ * Handles different input and movement based on current round
  */
-class QBPlayerEntity extends DefaultPlayerEntity {
-  private gameManager: GameManager;
+class MultiRoundPlayerEntity extends DefaultPlayerEntity {
+  private gameManager: MultiRoundGameManager;
   private isCharging: boolean = false;
 
-  constructor(player: Player, gameManager: GameManager) {
+  constructor(player: Player, gameManager: MultiRoundGameManager) {
     super({
       player,
       name: `player_${player.id}`,
@@ -65,10 +72,8 @@ class QBPlayerEntity extends DefaultPlayerEntity {
     // Disable auto-cancel of mouse left click (needed for hold-to-charge)
     controller.autoCancelMouseLeftClick = false;
 
-    // Disable default movement - QB is stationary
-    controller.canWalk = () => false;
-    controller.canRun = () => false;
-    controller.canJump = () => false;
+    // Movement enabled/disabled based on round type
+    this.updateMovementForRound();
 
     // Listen for player input events on the controller
     controller.on(BaseEntityControllerEvent.TICK_WITH_PLAYER_INPUT, ({ input }) => {
@@ -77,25 +82,63 @@ class QBPlayerEntity extends DefaultPlayerEntity {
   }
 
   /**
-   * Handle player input for throwing
+   * Update movement capabilities based on current round
+   */
+  public updateMovementForRound(): void {
+    const controller = this.controller as DefaultPlayerEntityController;
+    const currentRound = this.gameManager.getCurrentRound();
+
+    // All rounds are stationary (QB/Kicker position) - player throws/kicks from fixed position
+    const stationaryRounds = [
+      GameRound.QB_TARGET_THROW,
+      GameRound.RECEIVER_RUN,         // Player is QB throwing to AI receivers
+      GameRound.QB_ACCURACY_GAUNTLET, // Player is QB throwing at multiple targets
+      GameRound.FIELD_GOAL_FRENZY,
+      GameRound.HAIL_MARY,
+    ];
+
+    if (stationaryRounds.includes(currentRound)) {
+      // Stationary QB mode - no movement
+      controller.canWalk = () => false;
+      controller.canRun = () => false;
+      controller.canJump = () => false;
+    }
+  }
+
+  /**
+   * Handle player input - routes to current round handler
    */
   private handleInput(input: { ml?: boolean; [key: string]: any }): void {
     const player = this.player;
     if (!player) return;
 
-    // Handle throw charging with left mouse button
+    // Only process input when game is in playing state
+    if (!this.gameManager.isPlaying()) return;
+
+    // Handle action button (left mouse) for throwing/kicking
     if (input.ml && !this.isCharging) {
       // Start charging
       this.isCharging = true;
-      this.gameManager.startCharge(player);
+      this.routeInputToRound('start');
 
       // Start music on first user interaction (browser autoplay policy)
       startBackgroundMusic();
     } else if (!input.ml && this.isCharging) {
-      // Release throw
+      // Release throw/kick
       this.isCharging = false;
-      this.gameManager.releaseThrow(player);
+      this.routeInputToRound('release');
     }
+  }
+
+  /**
+   * Route input to the appropriate round handler
+   */
+  private routeInputToRound(inputType: 'start' | 'release'): void {
+    const player = this.player;
+    if (!player) return;
+
+    // Route input through game manager to current round handler
+    this.gameManager.handlePlayerInput(player.id, player, inputType);
   }
 
   /**
@@ -107,18 +150,52 @@ class QBPlayerEntity extends DefaultPlayerEntity {
     const player = this.player;
     if (!player) return;
 
-    // Set up camera for first-person aiming at QB eye level
+    // Set up camera for first-person view
     player.camera.setMode(PlayerCameraMode.FIRST_PERSON);
     player.camera.setAttachedToEntity(this);
-    player.camera.setOffset({ x: 0, y: 1.7, z: 0 }); // QB eye level (~6ft tall)
+    player.camera.setOffset({ x: 0, y: 1.7, z: 0 }); // Eye level (~6ft tall)
     player.camera.setModelHiddenNodes(['head', 'neck']); // Hide head in first person
+  }
+
+  /**
+   * Position player appropriately for the current round
+   */
+  public positionForRound(): void {
+    const currentRound = this.gameManager.getCurrentRound();
+
+    // Default QB position
+    let position = { x: 0, y: 2, z: 25 };
+    let rotation = Quaternion.fromEuler(0, 180, 0); // Face toward endzone
+
+    switch (currentRound) {
+      case GameRound.QB_TARGET_THROW:
+      case GameRound.HAIL_MARY:
+      case GameRound.QB_ACCURACY_GAUNTLET:
+        // Standard QB position
+        position = { x: 0, y: 2, z: 25 };
+        break;
+
+      case GameRound.RECEIVER_RUN:
+        // QB position for throwing to receivers
+        position = { x: 0, y: 2, z: 25 };
+        break;
+
+      case GameRound.FIELD_GOAL_FRENZY:
+        // Kicker position (will be adjusted by round handler)
+        position = { x: 0, y: 2, z: -12 }; // 20 yards from goal
+        break;
+    }
+
+    this.setPosition(position);
+    this.setRotation(rotation);
+    this.updateMovementForRound();
   }
 }
 
 startServer(world => {
-  console.log('=================================');
-  console.log('  QB TARGET THROW - Starting...');
-  console.log('=================================');
+  console.log('==========================================');
+  console.log('  HYSPORTS FOOTBALL - Multi-Round Game');
+  console.log('==========================================');
 
   // Save world reference for audio
   gameWorld = world;
@@ -129,22 +206,31 @@ startServer(world => {
   // Load the map
   world.loadMap(worldMap);
 
-  // Initialize the game manager
-  gameManager = new GameManager(world);
+  // Initialize the multi-round game manager
+  gameManager = new MultiRoundGameManager(world);
   gameManager.initialize();
+
+  // Register for round changes to update player movement modes
+  gameManager.onRoundChange((round: GameRound) => {
+    console.log(`[Server] Round changed to ${round}, updating player movement modes...`);
+    playerEntities.forEach((entity, playerId) => {
+      entity.updateMovementForRound();
+      entity.positionForRound();
+    });
+  });
 
   // Handle player joining
   world.on(PlayerEvent.JOINED_WORLD, ({ player }) => {
     console.log(`[Server] Player joined: ${player.username}`);
 
-    // Create custom QB player entity (extends DefaultPlayerEntity)
-    const playerEntity = new QBPlayerEntity(player, gameManager);
+    // Create multi-round player entity
+    const playerEntity = new MultiRoundPlayerEntity(player, gameManager);
 
-    // Spawn player at QB position (near blue endzone, facing red endzone)
-    // Stadium field: Red endzone Z=-34 to -31, Blue endzone Z=31 to 34
-    // Player faces toward negative Z (red endzone direction)
-    const spawnPos = { x: 0, y: 2, z: 25 }; // Near blue endzone (Z=31-34)
-    // Use Quaternion helper for proper 180 degree rotation
+    // Track the player entity for round change updates
+    playerEntities.set(player.id, playerEntity);
+
+    // Spawn player at default QB position
+    const spawnPos = { x: 0, y: 2, z: 25 };
     const spawnRotation = Quaternion.fromEuler(0, 180, 0);
     playerEntity.spawn(world, spawnPos, spawnRotation);
 
@@ -155,15 +241,18 @@ startServer(world => {
     player.ui.load('ui/index.html');
 
     // Send welcome messages
-    world.chatManager.sendPlayerMessage(player, 'Welcome to QB Target Throw!', '00FF00');
-    world.chatManager.sendPlayerMessage(player, 'Hold LEFT CLICK to charge your throw', 'FFFF00');
-    world.chatManager.sendPlayerMessage(player, 'Release to throw at targets!', 'FFFF00');
-    world.chatManager.sendPlayerMessage(player, 'Build combos for bonus points!', '00FFFF');
+    world.chatManager.sendPlayerMessage(player, 'Welcome to HySports Football!', '00FF00');
+    world.chatManager.sendPlayerMessage(player, '5 Rounds of Football Action!', 'FFFF00');
+    world.chatManager.sendPlayerMessage(player, 'Hold LEFT CLICK to charge throws/kicks', '00FFFF');
+    world.chatManager.sendPlayerMessage(player, 'Compete for the highest score!', 'FF00FF');
   });
 
   // Handle player leaving
   world.on(PlayerEvent.LEFT_WORLD, ({ player }) => {
     console.log(`[Server] Player left: ${player.username}`);
+
+    // Remove from tracked player entities
+    playerEntities.delete(player.id);
 
     // Unregister from game manager
     gameManager.unregisterPlayer(player);
@@ -174,33 +263,83 @@ startServer(world => {
     });
   });
 
-  // Chat commands for debugging/testing
-  world.chatManager.registerCommand('/restart', player => {
-    console.log(`[Server] ${player.username} requested game restart`);
-    world.chatManager.sendPlayerMessage(player, 'Game will restart after current round.', 'FFFF00');
-  });
+  // ============================================
+  // Chat Commands
+  // ============================================
 
   world.chatManager.registerCommand('/score', player => {
     const state = gameManager.getState();
-    const playerState = state.playerStates.get(player.id);
-    if (playerState) {
-      world.chatManager.sendPlayerMessage(player, `Score: ${playerState.score}`, '00FF00');
-      world.chatManager.sendPlayerMessage(player, `Combo: ${playerState.combo}x`, 'FFFF00');
-      const accuracy = playerState.totalThrows > 0
-        ? (playerState.successfulHits / playerState.totalThrows * 100).toFixed(1)
+    const playerScore = state.playerScores.get(player.id);
+    if (playerScore) {
+      world.chatManager.sendPlayerMessage(player, `Total Score: ${playerScore.totalScore}`, '00FF00');
+      world.chatManager.sendPlayerMessage(player, `Rounds Won: ${playerScore.roundsWon}`, 'FFFF00');
+
+      const stats = playerScore.stats;
+      const accuracy = stats.totalThrows > 0
+        ? (stats.successfulHits / stats.totalThrows * 100).toFixed(1)
         : '100.0';
       world.chatManager.sendPlayerMessage(player, `Accuracy: ${accuracy}%`, '00FFFF');
     }
   });
 
-  world.chatManager.registerCommand('/debug', player => {
+  world.chatManager.registerCommand('/stats', player => {
     const state = gameManager.getState();
-    console.log('[Debug] Game State:', state.state);
-    console.log('[Debug] Active Targets:', state.activeTargets.size);
-    console.log('[Debug] Active Balls:', state.activeBalls.size);
-    console.log('[Debug] Time Remaining:', state.timeRemaining);
-    world.chatManager.sendPlayerMessage(player, `State: ${state.state}, Targets: ${state.activeTargets.size}, Balls: ${state.activeBalls.size}`, '888888');
+    const playerScore = state.playerScores.get(player.id);
+    if (playerScore) {
+      const stats = playerScore.stats;
+      world.chatManager.sendPlayerMessage(player, '--- Your Stats ---', 'FFFFFF');
+      world.chatManager.sendPlayerMessage(player, `Throws: ${stats.totalThrows} | Hits: ${stats.successfulHits}`, '00FF00');
+      world.chatManager.sendPlayerMessage(player, `Touchdowns: ${stats.touchdowns} | Field Goals: ${stats.fieldGoals}`, 'FFFF00');
+      world.chatManager.sendPlayerMessage(player, `Catches: ${stats.catchesMade} | Tackles Avoided: ${stats.tacklesAvoided}`, '00FFFF');
+    }
   });
 
-  console.log('[Server] QB Target Throw initialized!');
+  world.chatManager.registerCommand('/leaderboard', player => {
+    const leaderboard = gameManager.getLeaderboard();
+    world.chatManager.sendPlayerMessage(player, '--- LEADERBOARD ---', 'FFD700');
+
+    leaderboard.slice(0, 5).forEach(entry => {
+      const prefix = entry.playerId === player.id ? '> ' : '  ';
+      world.chatManager.sendPlayerMessage(
+        player,
+        `${prefix}#${entry.rank} ${entry.playerName}: ${entry.score}`,
+        entry.playerId === player.id ? '00FF00' : 'FFFFFF'
+      );
+    });
+  });
+
+  world.chatManager.registerCommand('/round', player => {
+    const state = gameManager.getState();
+    const config = ROUND_CONFIGS[state.currentRound];
+
+    world.chatManager.sendPlayerMessage(player, `Round ${state.roundNumber}/${state.totalRounds}: ${config.name}`, '00FFFF');
+    world.chatManager.sendPlayerMessage(player, `State: ${state.gameState}`, 'FFFF00');
+    world.chatManager.sendPlayerMessage(player, `Time: ${Math.ceil(state.timeRemainingSeconds)}s`, '00FF00');
+  });
+
+  world.chatManager.registerCommand('/debug', player => {
+    const state = gameManager.getState();
+    console.log('[Debug] Game State:', state.gameState);
+    console.log('[Debug] Current Round:', state.currentRound);
+    console.log('[Debug] Round Number:', state.roundNumber);
+    console.log('[Debug] Active Players:', state.activePlayers.size);
+    console.log('[Debug] Time Remaining:', state.timeRemainingSeconds);
+
+    world.chatManager.sendPlayerMessage(
+      player,
+      `State: ${state.gameState} | Round: ${state.currentRound} | Players: ${state.activePlayers.size}`,
+      '888888'
+    );
+  });
+
+  world.chatManager.registerCommand('/help', player => {
+    world.chatManager.sendPlayerMessage(player, '--- COMMANDS ---', 'FFD700');
+    world.chatManager.sendPlayerMessage(player, '/score - Show your score', 'FFFFFF');
+    world.chatManager.sendPlayerMessage(player, '/stats - Show detailed stats', 'FFFFFF');
+    world.chatManager.sendPlayerMessage(player, '/leaderboard - Show rankings', 'FFFFFF');
+    world.chatManager.sendPlayerMessage(player, '/round - Show current round info', 'FFFFFF');
+  });
+
+  console.log('[Server] HySports Football initialized!');
+  console.log('[Server] Waiting for players to join...');
 });

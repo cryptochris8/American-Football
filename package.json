@@ -8,14 +8,19 @@
     "dev": "npx hytopia --dev",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": ["hytopia", "football", "game", "arcade"],
+  "keywords": [
+    "hytopia",
+    "football",
+    "game",
+    "arcade"
+  ],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
-    "hytopia": "^0.14.5"
+    "hytopia": "^0.14.12"
   },
   "optionalDependencies": {
-    "@hytopia.com/assets": "^0.4.2"
+    "@hytopia.com/assets": "^0.4.5"
   }
 }

@@ -80,6 +80,7 @@ export interface FootballData {
   thrownBy: Player;
   initialVelocity: { x: number; y: number; z: number };
   hasHitGround: boolean; // Once true, ball can no longer score
+  spiralAngle: number; // Current spiral rotation angle (radians)
 }
 
 // Player game state (per-player)

@@ -1,25 +1,95 @@
 <!--
-  QB Target Throw - Game UI
-  HUD with score, timer, combo, power bar, and crosshair
+  Multi-Round Football Game - Game UI
+  HUD with leaderboard, round info, score, timer, and game-mode specific elements
 -->
 
 <script>
   // Game state
   let gameState = {
-    state: 'waiting',
+    state: 'lobby',
     score: 0,
     combo: 0,
     timeRemaining: 60,
     chargePower: 0,
     accuracy: 100,
-    roundNumber: 1
+    roundNumber: 1,
+    totalRounds: 5,
+    currentRound: 1,
+    roundName: 'QB Target Throw',
+    playerRank: 1,
+    totalPlayers: 1,
+    leaderboard: []
+  };
+
+  // Round names
+  const ROUND_NAMES = {
+    1: 'QB Target Throw',
+    2: 'Receiver Run',
+    3: 'Running Back Rush',
+    4: 'Field Goal Frenzy',
+    5: 'Hail Mary'
   };
 
   // Handle data from server
   hytopia.onData(data => {
-    if (data.type === 'game_update') {
-      gameState = { ...gameState, ...data };
-      updateUI();
+    console.log('UI received:', data.type);
+
+    switch (data.type) {
+      case 'game_update':
+      case 'multi_round_update':
+        gameState = { ...gameState, ...data };
+        updateUI();
+        break;
+
+      case 'round_intro':
+        showRoundIntro(data);
+        break;
+
+      case 'round_results':
+        showRoundResults(data);
+        break;
+
+      case 'game_over':
+        showGameOver(data);
+        break;
+
+      case 'route_assigned':
+        showRouteAssignment(data);
+        break;
+
+      case 'catch_made':
+      case 'catch':
+        showCatchNotification(data);
+        break;
+
+      case 'tackled':
+        showTackleNotification(data);
+        break;
+
+      case 'touchdown':
+        showTouchdownNotification(data);
+        break;
+
+      case 'field_goal_good':
+        showFieldGoalNotification(data, true);
+        break;
+
+      case 'field_goal_miss':
+        showFieldGoalNotification(data, false);
+        break;
+
+      case 'wind_update':
+        updateWindIndicator(data);
+        break;
+
+      case 'throw_made':
+      case 'incomplete':
+        updateThrowsRemaining(data);
+        break;
+
+      case 'kick_distance':
+        updateKickDistance(data);
+        break;
     }
   });
 
@@ -29,6 +99,10 @@
     const scoreEl = document.getElementById('score-value');
     if (scoreEl) scoreEl.textContent = gameState.score.toLocaleString();
 
+    // Update player rank
+    const rankEl = document.getElementById('rank-value');
+    if (rankEl) rankEl.textContent = '#' + gameState.playerRank;
+
     // Update combo
     const comboEl = document.getElementById('combo-value');
     const comboContainer = document.getElementById('combo-container');
@@ -36,10 +110,9 @@
       comboEl.textContent = gameState.combo + 'x';
       comboContainer.style.display = gameState.combo > 1 ? 'flex' : 'none';
 
-      // Add pulse animation on combo change
       if (gameState.combo > 1) {
         comboContainer.classList.remove('pulse');
-        void comboContainer.offsetWidth; // Trigger reflow
+        void comboContainer.offsetWidth;
         comboContainer.classList.add('pulse');
       }
     }
@@ -47,17 +120,27 @@
     // Update timer
     const timerEl = document.getElementById('timer-value');
     if (timerEl) {
-      timerEl.textContent = gameState.timeRemaining;
+      timerEl.textContent = Math.max(0, Math.ceil(gameState.timeRemaining));
       timerEl.style.color = gameState.timeRemaining <= 10 ? '#ff4444' : '#ffffff';
+    }
+
+    // Update round info
+    const roundEl = document.getElementById('round-value');
+    if (roundEl) {
+      roundEl.textContent = `Round ${gameState.roundNumber}/${gameState.totalRounds}`;
+    }
+
+    const roundNameEl = document.getElementById('round-name');
+    if (roundNameEl) {
+      roundNameEl.textContent = gameState.roundName || ROUND_NAMES[gameState.currentRound] || 'Unknown';
     }
 
     // Update power bar
     const powerFill = document.getElementById('power-fill');
     if (powerFill) {
-      const percent = gameState.chargePower * 100;
+      const percent = (gameState.chargePower || 0) * 100;
       powerFill.style.width = percent + '%';
 
-      // Color gradient based on power
       if (percent < 33) {
         powerFill.style.background = 'linear-gradient(90deg, #44ff44, #88ff44)';
       } else if (percent < 66) {
@@ -67,58 +150,205 @@
       }
     }
 
-    // Update accuracy
-    const accuracyEl = document.getElementById('accuracy-value');
-    if (accuracyEl) accuracyEl.textContent = gameState.accuracy + '%';
+    // Update leaderboard
+    updateLeaderboard();
 
-    // Update round number
-    const roundEl = document.getElementById('round-value');
-    if (roundEl) roundEl.textContent = 'Round ' + gameState.roundNumber;
-
-    // Handle different game states
-    const countdownEl = document.getElementById('countdown-overlay');
-    const gameOverEl = document.getElementById('game-over-overlay');
-    const waitingEl = document.getElementById('waiting-overlay');
+    // Handle game states
+    hideAllOverlays();
     const hudEl = document.getElementById('game-hud');
 
-    if (countdownEl) countdownEl.style.display = 'none';
-    if (gameOverEl) gameOverEl.style.display = 'none';
-    if (waitingEl) waitingEl.style.display = 'none';
-    if (hudEl) hudEl.style.display = 'flex';
-
-    switch (gameState.state) {
+    switch (gameState.gameState || gameState.state) {
+      case 'lobby':
       case 'waiting':
-        if (waitingEl) waitingEl.style.display = 'flex';
+        document.getElementById('waiting-overlay').style.display = 'flex';
         if (hudEl) hudEl.style.display = 'none';
         break;
+
+      case 'round_intro':
+        document.getElementById('round-intro-overlay').style.display = 'flex';
+        if (hudEl) hudEl.style.display = 'none';
+        break;
+
       case 'countdown':
-        if (countdownEl) {
-          countdownEl.style.display = 'flex';
-          const countdownNum = document.getElementById('countdown-number');
-          if (countdownNum) {
-            countdownNum.textContent = Math.ceil(gameState.timeRemaining);
-            countdownNum.classList.remove('countdown-animate');
-            void countdownNum.offsetWidth;
-            countdownNum.classList.add('countdown-animate');
-          }
+        document.getElementById('countdown-overlay').style.display = 'flex';
+        const countdownNum = document.getElementById('countdown-number');
+        if (countdownNum) {
+          countdownNum.textContent = Math.ceil(gameState.timeRemaining || gameState.countdownTime || 3);
+          countdownNum.classList.remove('countdown-animate');
+          void countdownNum.offsetWidth;
+          countdownNum.classList.add('countdown-animate');
         }
         break;
-      case 'round_end':
+
+      case 'playing':
+        if (hudEl) hudEl.style.display = 'flex';
+        break;
+
+      case 'round_results':
+        document.getElementById('round-results-overlay').style.display = 'flex';
+        break;
+
       case 'game_over':
-        if (gameOverEl) {
-          gameOverEl.style.display = 'flex';
-          const finalScore = document.getElementById('final-score');
-          const finalAccuracy = document.getElementById('final-accuracy');
-          if (finalScore) finalScore.textContent = gameState.score.toLocaleString();
-          if (finalAccuracy) finalAccuracy.textContent = gameState.accuracy + '%';
-        }
+        document.getElementById('game-over-overlay').style.display = 'flex';
         break;
     }
   }
 
+  function hideAllOverlays() {
+    document.getElementById('waiting-overlay').style.display = 'none';
+    document.getElementById('countdown-overlay').style.display = 'none';
+    document.getElementById('round-intro-overlay').style.display = 'none';
+    document.getElementById('round-results-overlay').style.display = 'none';
+    document.getElementById('game-over-overlay').style.display = 'none';
+  }
+
+  function updateLeaderboard() {
+    const leaderboardEl = document.getElementById('leaderboard-list');
+    if (!leaderboardEl || !gameState.leaderboard) return;
+
+    leaderboardEl.innerHTML = '';
+    gameState.leaderboard.slice(0, 5).forEach((entry, index) => {
+      const li = document.createElement('li');
+      li.className = entry.isCurrentPlayer ? 'current-player' : '';
+      li.innerHTML = `
+        <span class="rank">${entry.rank}</span>
+        <span class="name">${entry.playerName}</span>
+        <span class="points">${entry.score.toLocaleString()}</span>
+      `;
+      leaderboardEl.appendChild(li);
+    });
+  }
+
+  // Round intro display
+  function showRoundIntro(data) {
+    const overlay = document.getElementById('round-intro-overlay');
+    document.getElementById('intro-round-name').textContent = data.roundName;
+    document.getElementById('intro-round-description').textContent = data.description;
+    document.getElementById('intro-round-duration').textContent = data.duration + 's';
+    document.getElementById('intro-round-multiplier').textContent = data.scoreMultiplier + 'x';
+    overlay.style.display = 'flex';
+  }
+
+  // Round results display
+  function showRoundResults(data) {
+    const overlay = document.getElementById('round-results-overlay');
+    document.getElementById('results-round-name').textContent = data.roundName;
+    document.getElementById('results-player-score').textContent = data.playerScore.toLocaleString();
+    document.getElementById('results-player-rank').textContent = '#' + data.playerRank;
+    document.getElementById('results-winner').textContent = data.roundWinner;
+
+    const nextRoundEl = document.getElementById('results-next-round');
+    if (data.nextRound) {
+      nextRoundEl.textContent = 'Next: ' + ROUND_NAMES[data.nextRound];
+    } else {
+      nextRoundEl.textContent = 'Final Round Complete!';
+    }
+
+    // Update results leaderboard
+    const resultsLeaderboard = document.getElementById('results-leaderboard');
+    resultsLeaderboard.innerHTML = '';
+    data.leaderboard.forEach(entry => {
+      const li = document.createElement('li');
+      li.className = entry.isCurrentPlayer ? 'current-player' : '';
+      li.innerHTML = `
+        <span class="rank">${entry.rank}</span>
+        <span class="name">${entry.playerName}</span>
+        <span class="points">${entry.score.toLocaleString()}</span>
+      `;
+      resultsLeaderboard.appendChild(li);
+    });
+
+    overlay.style.display = 'flex';
+  }
+
+  // Game over display
+  function showGameOver(data) {
+    const overlay = document.getElementById('game-over-overlay');
+    document.getElementById('final-winner').textContent = data.winner;
+    document.getElementById('final-rank').textContent = '#' + data.playerFinalRank;
+    document.getElementById('final-score').textContent = data.playerTotalScore.toLocaleString();
+
+    // Update final leaderboard
+    const finalLeaderboard = document.getElementById('final-leaderboard');
+    finalLeaderboard.innerHTML = '';
+    data.finalLeaderboard.forEach(entry => {
+      const li = document.createElement('li');
+      li.className = entry.isCurrentPlayer ? 'current-player' : '';
+      li.innerHTML = `
+        <span class="rank">${entry.rank}</span>
+        <span class="name">${entry.playerName}</span>
+        <span class="points">${entry.score.toLocaleString()}</span>
+      `;
+      finalLeaderboard.appendChild(li);
+    });
+
+    overlay.style.display = 'flex';
+  }
+
+  // Game mode specific notifications
+  function showRouteAssignment(data) {
+    showNotification(`Run ${data.route.toUpperCase()} route!`, 'info', 3000);
+  }
+
+  function showCatchNotification(data) {
+    showNotification(`CATCH! +${data.points} pts`, 'success', 2000);
+  }
+
+  function showTackleNotification(data) {
+    showNotification(`TACKLED! ${data.yardsGained} yards`, 'warning', 2000);
+  }
+
+  function showTouchdownNotification(data) {
+    showNotification(`TOUCHDOWN! +${data.points} pts`, 'success', 3000);
+  }
+
+  function showFieldGoalNotification(data, isGood) {
+    if (isGood) {
+      showNotification(`GOOD! +${data.points} pts (${data.streak} streak)`, 'success', 2000);
+    } else {
+      showNotification(`MISSED! Try again...`, 'warning', 2000);
+    }
+  }
+
+  function updateWindIndicator(data) {
+    const windEl = document.getElementById('wind-indicator');
+    if (windEl) {
+      const direction = data.windDirection > 0 ? '→' : '←';
+      windEl.textContent = `Wind: ${direction} ${data.windSpeed.toFixed(1)} m/s`;
+      windEl.style.display = 'block';
+    }
+  }
+
+  function updateThrowsRemaining(data) {
+    const throwsEl = document.getElementById('throws-remaining');
+    if (throwsEl) {
+      throwsEl.textContent = `Throws: ${data.throwsRemaining}`;
+    }
+  }
+
+  function updateKickDistance(data) {
+    const distEl = document.getElementById('kick-distance');
+    if (distEl) {
+      distEl.textContent = data.name;
+      distEl.style.display = 'block';
+    }
+  }
+
+  function showNotification(message, type, duration) {
+    const container = document.getElementById('notification-container');
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    notification.textContent = message;
+    container.appendChild(notification);
+
+    setTimeout(() => {
+      notification.classList.add('fade-out');
+      setTimeout(() => notification.remove(), 300);
+    }, duration);
+  }
+
   // Mobile controls
   document.addEventListener('DOMContentLoaded', () => {
-    // Mobile throw button
     const mobileThrowButton = document.getElementById('mobile-throw-button');
     if (mobileThrowButton) {
       mobileThrowButton.addEventListener('touchstart', e => {
@@ -142,9 +372,7 @@
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;700&display=swap');
 
-  * {
-    box-sizing: border-box;
-  }
+  * { box-sizing: border-box; }
 
   /* Game HUD Container */
   #game-hud {
@@ -158,7 +386,7 @@
     pointer-events: none;
   }
 
-  /* Top Bar - Score, Timer, Round */
+  /* Top Bar */
   .top-bar {
     display: flex;
     justify-content: space-between;
@@ -173,12 +401,12 @@
     border-radius: 10px;
     padding: 15px 25px;
     min-width: 200px;
-    box-shadow: 0 4px 15px rgba(0, 255, 100, 0.2), inset 0 0 30px rgba(0, 255, 100, 0.05);
+    box-shadow: 0 4px 15px rgba(0, 255, 100, 0.2);
   }
 
-  .score-label {
+  .score-label, .timer-label, .rank-label {
     font-family: 'Rajdhani', sans-serif;
-    font-size: 14px;
+    font-size: 12px;
     color: rgba(0, 255, 100, 0.8);
     text-transform: uppercase;
     letter-spacing: 2px;
@@ -186,10 +414,17 @@
 
   #score-value {
     font-family: 'Orbitron', sans-serif;
-    font-size: 42px;
+    font-size: 36px;
     font-weight: 900;
     color: #ffffff;
     text-shadow: 0 0 20px rgba(0, 255, 100, 0.8);
+  }
+
+  #rank-value {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 18px;
+    color: rgba(255, 200, 0, 0.9);
+    margin-top: 5px;
   }
 
   /* Timer Panel */
@@ -202,13 +437,7 @@
     box-shadow: 0 4px 15px rgba(255, 200, 0, 0.2);
   }
 
-  .timer-label {
-    font-family: 'Rajdhani', sans-serif;
-    font-size: 12px;
-    color: rgba(255, 200, 0, 0.8);
-    text-transform: uppercase;
-    letter-spacing: 2px;
-  }
+  .timer-label { color: rgba(255, 200, 0, 0.8); }
 
   #timer-value {
     font-family: 'Orbitron', sans-serif;
@@ -218,39 +447,62 @@
     text-shadow: 0 0 20px rgba(255, 200, 0, 0.8);
   }
 
-  #round-value {
+  #round-value, #round-name {
     font-family: 'Rajdhani', sans-serif;
     font-size: 14px;
     color: rgba(255, 200, 0, 0.7);
     margin-top: 5px;
   }
 
-  /* Accuracy Panel */
-  .accuracy-panel {
-    background: linear-gradient(135deg, rgba(50, 0, 50, 0.85), rgba(30, 0, 30, 0.9));
-    border: 2px solid rgba(200, 100, 255, 0.5);
-    border-radius: 10px;
-    padding: 15px 25px;
-    text-align: right;
-    min-width: 150px;
-    box-shadow: 0 4px 15px rgba(200, 100, 255, 0.2);
+  #round-name {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.6);
   }
 
-  .accuracy-label {
+  /* Leaderboard Panel */
+  .leaderboard-panel {
+    background: linear-gradient(135deg, rgba(30, 30, 50, 0.9), rgba(20, 20, 40, 0.95));
+    border: 2px solid rgba(100, 150, 255, 0.5);
+    border-radius: 10px;
+    padding: 15px 20px;
+    min-width: 200px;
+    box-shadow: 0 4px 15px rgba(100, 150, 255, 0.2);
+  }
+
+  .leaderboard-title {
     font-family: 'Rajdhani', sans-serif;
     font-size: 14px;
-    color: rgba(200, 100, 255, 0.8);
+    color: rgba(100, 150, 255, 0.8);
     text-transform: uppercase;
     letter-spacing: 2px;
+    margin-bottom: 10px;
+    text-align: center;
   }
 
-  #accuracy-value {
-    font-family: 'Orbitron', sans-serif;
-    font-size: 32px;
-    font-weight: 700;
-    color: #ffffff;
-    text-shadow: 0 0 15px rgba(200, 100, 255, 0.8);
+  #leaderboard-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
   }
+
+  #leaderboard-list li {
+    display: flex;
+    justify-content: space-between;
+    padding: 5px 0;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.8);
+    border-bottom: 1px solid rgba(100, 150, 255, 0.2);
+  }
+
+  #leaderboard-list li.current-player {
+    color: #44ff88;
+    font-weight: bold;
+  }
+
+  #leaderboard-list .rank { width: 25px; }
+  #leaderboard-list .name { flex: 1; margin: 0 10px; }
+  #leaderboard-list .points { text-align: right; }
 
   /* Combo Display */
   #combo-container {
@@ -268,9 +520,7 @@
     box-shadow: 0 0 30px rgba(255, 100, 0, 0.5);
   }
 
-  #combo-container.pulse {
-    animation: combo-pulse 0.3s ease-out;
-  }
+  #combo-container.pulse { animation: combo-pulse 0.3s ease-out; }
 
   @keyframes combo-pulse {
     0% { transform: translateY(-50%) scale(1); }
@@ -306,7 +556,6 @@
     border: 2px solid rgba(255, 255, 255, 0.3);
     border-radius: 12px;
     overflow: hidden;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
   }
 
   #power-fill {
@@ -315,7 +564,6 @@
     background: linear-gradient(90deg, #44ff44, #88ff44);
     border-radius: 10px;
     transition: width 0.05s linear;
-    box-shadow: 0 0 15px rgba(100, 255, 100, 0.5);
   }
 
   .power-label {
@@ -327,8 +575,75 @@
     font-size: 12px;
     color: white;
     text-transform: uppercase;
-    letter-spacing: 2px;
-    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+  }
+
+  /* Game Mode Specific UI */
+  #wind-indicator, #kick-distance, #throws-remaining {
+    display: none;
+    position: fixed;
+    bottom: 140px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 18px;
+    color: #ffffff;
+    background: rgba(0, 0, 0, 0.7);
+    padding: 8px 20px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+  }
+
+  /* Notifications */
+  #notification-container {
+    position: fixed;
+    top: 120px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    pointer-events: none;
+  }
+
+  .notification {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 24px;
+    font-weight: bold;
+    padding: 15px 30px;
+    border-radius: 10px;
+    animation: notification-in 0.3s ease-out;
+  }
+
+  .notification.success {
+    background: linear-gradient(135deg, rgba(0, 150, 0, 0.9), rgba(0, 100, 0, 0.9));
+    color: #ffffff;
+    border: 2px solid #44ff44;
+    text-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+  }
+
+  .notification.warning {
+    background: linear-gradient(135deg, rgba(150, 100, 0, 0.9), rgba(100, 50, 0, 0.9));
+    color: #ffffff;
+    border: 2px solid #ffaa44;
+  }
+
+  .notification.info {
+    background: linear-gradient(135deg, rgba(0, 100, 150, 0.9), rgba(0, 50, 100, 0.9));
+    color: #ffffff;
+    border: 2px solid #44aaff;
+  }
+
+  .notification.fade-out { animation: notification-out 0.3s ease-out forwards; }
+
+  @keyframes notification-in {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes notification-out {
+    from { opacity: 1; }
+    to { opacity: 0; transform: translateY(-10px); }
   }
 
   /* Crosshair */
@@ -342,8 +657,7 @@
     pointer-events: none;
   }
 
-  .crosshair::before,
-  .crosshair::after {
+  .crosshair::before, .crosshair::after {
     content: '';
     position: absolute;
     background: rgba(255, 255, 255, 0.9);
@@ -378,40 +692,8 @@
     box-shadow: 0 0 10px rgba(255, 68, 68, 0.8);
   }
 
-  /* Countdown Overlay */
-  #countdown-overlay {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.6);
-    justify-content: center;
-    align-items: center;
-    z-index: 100;
-  }
-
-  #countdown-number {
-    font-family: 'Orbitron', sans-serif;
-    font-size: 150px;
-    font-weight: 900;
-    color: #ffffff;
-    text-shadow: 0 0 50px rgba(0, 255, 100, 1), 0 0 100px rgba(0, 255, 100, 0.5);
-  }
-
-  #countdown-number.countdown-animate {
-    animation: countdown-pop 0.5s ease-out;
-  }
-
-  @keyframes countdown-pop {
-    0% { transform: scale(0.5); opacity: 0; }
-    50% { transform: scale(1.2); }
-    100% { transform: scale(1); opacity: 1; }
-  }
-
-  /* Game Over Overlay */
-  #game-over-overlay {
+  /* Overlays */
+  .overlay {
     display: none;
     position: fixed;
     top: 0;
@@ -425,89 +707,114 @@
     z-index: 100;
   }
 
-  .game-over-title {
+  .overlay-title {
     font-family: 'Orbitron', sans-serif;
-    font-size: 64px;
+    font-size: 48px;
     font-weight: 900;
     color: #ffffff;
     text-shadow: 0 0 30px rgba(255, 200, 0, 1);
-    margin-bottom: 30px;
-  }
-
-  .final-stats {
-    display: flex;
-    gap: 60px;
-    margin-bottom: 40px;
-  }
-
-  .stat-box {
-    text-align: center;
-    background: rgba(50, 50, 50, 0.8);
-    border: 2px solid rgba(255, 200, 0, 0.5);
-    border-radius: 15px;
-    padding: 20px 40px;
-  }
-
-  .stat-box .label {
-    font-family: 'Rajdhani', sans-serif;
-    font-size: 14px;
-    color: rgba(255, 200, 0, 0.8);
-    text-transform: uppercase;
-    letter-spacing: 2px;
-  }
-
-  .stat-box .value {
-    font-family: 'Orbitron', sans-serif;
-    font-size: 48px;
-    font-weight: 900;
-    color: #ffffff;
-  }
-
-  .next-round-text {
-    font-family: 'Rajdhani', sans-serif;
-    font-size: 18px;
-    color: rgba(255, 255, 255, 0.7);
-    letter-spacing: 2px;
-  }
-
-  /* Waiting Overlay */
-  #waiting-overlay {
-    display: flex;
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.7);
-    justify-content: center;
-    align-items: center;
-    flex-direction: column;
-    z-index: 100;
-  }
-
-  .waiting-title {
-    font-family: 'Orbitron', sans-serif;
-    font-size: 48px;
-    font-weight: 900;
-    color: #ffffff;
-    text-shadow: 0 0 30px rgba(0, 255, 100, 1);
     margin-bottom: 20px;
+    text-align: center;
   }
 
-  .waiting-subtitle {
+  .overlay-subtitle {
     font-family: 'Rajdhani', sans-serif;
     font-size: 24px;
     color: rgba(255, 255, 255, 0.8);
+    margin-bottom: 30px;
+    text-align: center;
   }
 
-  /* Mobile Controls */
-  .mobile-controls {
-    display: none;
+  .overlay-description {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 18px;
+    color: rgba(255, 255, 255, 0.7);
+    max-width: 500px;
+    text-align: center;
+    margin-bottom: 30px;
   }
+
+  /* Round Intro */
+  .intro-stats {
+    display: flex;
+    gap: 40px;
+  }
+
+  .intro-stat {
+    text-align: center;
+    background: rgba(50, 50, 50, 0.8);
+    border: 2px solid rgba(255, 200, 0, 0.5);
+    border-radius: 10px;
+    padding: 15px 25px;
+  }
+
+  .intro-stat .label {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 12px;
+    color: rgba(255, 200, 0, 0.8);
+    text-transform: uppercase;
+  }
+
+  .intro-stat .value {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 28px;
+    color: #ffffff;
+  }
+
+  /* Results/Game Over Leaderboard */
+  .results-leaderboard, .final-leaderboard {
+    background: rgba(30, 30, 50, 0.9);
+    border: 2px solid rgba(100, 150, 255, 0.5);
+    border-radius: 10px;
+    padding: 20px;
+    min-width: 350px;
+    margin-bottom: 30px;
+  }
+
+  .results-leaderboard ul, .final-leaderboard ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .results-leaderboard li, .final-leaderboard li {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 18px;
+    color: rgba(255, 255, 255, 0.8);
+    border-bottom: 1px solid rgba(100, 150, 255, 0.2);
+  }
+
+  .results-leaderboard li.current-player, .final-leaderboard li.current-player {
+    color: #44ff88;
+    font-weight: bold;
+    font-size: 20px;
+  }
+
+  /* Countdown */
+  #countdown-number {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 150px;
+    font-weight: 900;
+    color: #ffffff;
+    text-shadow: 0 0 50px rgba(0, 255, 100, 1);
+  }
+
+  #countdown-number.countdown-animate { animation: countdown-pop 0.5s ease-out; }
+
+  @keyframes countdown-pop {
+    0% { transform: scale(0.5); opacity: 0; }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  /* Mobile */
+  .mobile-controls { display: none; }
 
   body.mobile .mobile-controls {
     display: flex;
-    gap: 14px;
     position: fixed;
     bottom: 40px;
     right: 40px;
@@ -517,27 +824,22 @@
     background-color: rgba(0, 100, 0, 0.7);
     border: 2px solid rgba(0, 255, 100, 0.5);
     border-radius: 50%;
-    align-items: center;
-    justify-content: center;
-    display: flex;
     width: 70px;
     height: 70px;
-    transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
-    pointer-events: auto !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     font-family: 'Rajdhani', sans-serif;
     font-size: 12px;
-    font-weight: bold;
     color: rgba(255, 255, 255, 0.9);
-    text-transform: uppercase;
+    pointer-events: auto !important;
   }
 
   .mobile-button.active {
     transform: scale(0.92);
     background-color: rgba(0, 150, 0, 0.9);
-    box-shadow: 0 0 20px rgba(0, 255, 100, 0.5);
   }
 
-  /* Instructions */
   .instructions {
     position: fixed;
     bottom: 20px;
@@ -550,31 +852,29 @@
     border-radius: 8px;
   }
 
-  body.mobile .instructions {
-    display: none;
-  }
+  body.mobile .instructions { display: none; }
 </style>
 
 <!-- Game HUD -->
 <div id="game-hud">
   <div class="top-bar">
-    <!-- Score Panel -->
     <div class="score-panel">
       <div class="score-label">Score</div>
       <div id="score-value">0</div>
+      <div class="rank-label">Rank</div>
+      <div id="rank-value">#1</div>
     </div>
 
-    <!-- Timer Panel -->
     <div class="timer-panel">
       <div class="timer-label">Time</div>
       <div id="timer-value">60</div>
-      <div id="round-value">Round 1</div>
+      <div id="round-value">Round 1/5</div>
+      <div id="round-name">QB Target Throw</div>
     </div>
 
-    <!-- Accuracy Panel -->
-    <div class="accuracy-panel">
-      <div class="accuracy-label">Accuracy</div>
-      <div id="accuracy-value">100%</div>
+    <div class="leaderboard-panel">
+      <div class="leaderboard-title">Leaderboard</div>
+      <ul id="leaderboard-list"></ul>
     </div>
   </div>
 </div>
@@ -591,46 +891,94 @@
   <span class="power-label">Hold to Charge</span>
 </div>
 
+<!-- Game Mode Specific -->
+<div id="wind-indicator"></div>
+<div id="kick-distance"></div>
+<div id="throws-remaining"></div>
+
+<!-- Notification Container -->
+<div id="notification-container"></div>
+
 <!-- Crosshair -->
 <div class="crosshair">
   <div class="crosshair-dot"></div>
 </div>
 
+<!-- Waiting Overlay -->
+<div id="waiting-overlay" class="overlay">
+  <div class="overlay-title">FOOTBALL FRENZY</div>
+  <div class="overlay-subtitle">5 Rounds of Football Fun!</div>
+  <div class="overlay-description">Waiting for players to join...</div>
+</div>
+
 <!-- Countdown Overlay -->
-<div id="countdown-overlay">
+<div id="countdown-overlay" class="overlay">
   <div id="countdown-number">3</div>
 </div>
 
-<!-- Game Over / Round End Overlay -->
-<div id="game-over-overlay">
-  <div class="game-over-title">ROUND COMPLETE!</div>
-  <div class="final-stats">
-    <div class="stat-box">
-      <div class="label">Final Score</div>
-      <div class="value" id="final-score">0</div>
+<!-- Round Intro Overlay -->
+<div id="round-intro-overlay" class="overlay">
+  <div class="overlay-title" id="intro-round-name">QB Target Throw</div>
+  <div class="overlay-description" id="intro-round-description">Throw footballs at moving targets!</div>
+  <div class="intro-stats">
+    <div class="intro-stat">
+      <div class="label">Duration</div>
+      <div class="value" id="intro-round-duration">60s</div>
     </div>
-    <div class="stat-box">
-      <div class="label">Accuracy</div>
-      <div class="value" id="final-accuracy">0%</div>
+    <div class="intro-stat">
+      <div class="label">Score Bonus</div>
+      <div class="value" id="intro-round-multiplier">1x</div>
     </div>
   </div>
-  <div class="next-round-text">Next round starting soon...</div>
 </div>
 
-<!-- Waiting Overlay -->
-<div id="waiting-overlay">
-  <div class="waiting-title">QB TARGET THROW</div>
-  <div class="waiting-subtitle">Get ready to throw!</div>
+<!-- Round Results Overlay -->
+<div id="round-results-overlay" class="overlay">
+  <div class="overlay-title">ROUND COMPLETE!</div>
+  <div class="overlay-subtitle" id="results-round-name">QB Target Throw</div>
+  <div style="display: flex; gap: 40px; margin-bottom: 20px;">
+    <div class="intro-stat">
+      <div class="label">Your Score</div>
+      <div class="value" id="results-player-score">0</div>
+    </div>
+    <div class="intro-stat">
+      <div class="label">Your Rank</div>
+      <div class="value" id="results-player-rank">#1</div>
+    </div>
+  </div>
+  <div class="overlay-subtitle">Winner: <span id="results-winner">-</span></div>
+  <div class="results-leaderboard">
+    <ul id="results-leaderboard"></ul>
+  </div>
+  <div class="overlay-description" id="results-next-round">Next round starting...</div>
+</div>
+
+<!-- Game Over Overlay -->
+<div id="game-over-overlay" class="overlay">
+  <div class="overlay-title">GAME OVER!</div>
+  <div class="overlay-subtitle">Champion: <span id="final-winner">-</span></div>
+  <div style="display: flex; gap: 40px; margin-bottom: 20px;">
+    <div class="intro-stat">
+      <div class="label">Your Rank</div>
+      <div class="value" id="final-rank">#1</div>
+    </div>
+    <div class="intro-stat">
+      <div class="label">Total Score</div>
+      <div class="value" id="final-score">0</div>
+    </div>
+  </div>
+  <div class="final-leaderboard">
+    <ul id="final-leaderboard"></ul>
+  </div>
+  <div class="overlay-description">New game starting soon...</div>
 </div>
 
 <!-- Mobile Controls -->
 <div class="mobile-controls">
-  <a id="mobile-throw-button" class="mobile-button">
-    THROW
-  </a>
+  <a id="mobile-throw-button" class="mobile-button">THROW</a>
 </div>
 
 <!-- Instructions -->
 <div class="instructions">
-  Hold LEFT CLICK to charge | Release to throw | Hit targets for points!
+  Hold LEFT CLICK to charge | Release to throw | Build combos for bonus points!
 </div>
