@@ -15,6 +15,7 @@ export enum GameRound {
   QB_ACCURACY_GAUNTLET = 3, // Multiple targets, hit as many as possible
   FIELD_GOAL_FRENZY = 4,   // Kick field goals
   HAIL_MARY = 5,           // Long bomb to moving receiver
+  BARNYARD_BLITZ = 6,      // Farm animals as targets
 }
 
 export enum MultiRoundGameState {
@@ -133,6 +134,15 @@ export const ROUND_CONFIGS: Record<GameRound, RoundConfig> = {
     maxPlayers: 8,
     scoreMultiplier: 2.0,
   },
+  [GameRound.BARNYARD_BLITZ]: {
+    round: GameRound.BARNYARD_BLITZ,
+    name: 'Barnyard Blitz',
+    description: 'Round up the escaped farm animals! Hit cows, pigs, chickens, and rabbits. Watch out for the dog!',
+    duration: 60,
+    minPlayers: 1,
+    maxPlayers: 8,
+    scoreMultiplier: 1.2,
+  },
 };
 
 // ============================================
@@ -172,7 +182,8 @@ export type RoundSpecificState =
   | ReceiverRunState
   | QBAccuracyGauntletState
   | FieldGoalFrenzyState
-  | HailMaryState;
+  | HailMaryState
+  | BarnyardBlitzState;
 
 export interface QBTargetThrowState {
   type: 'qb_target_throw';
@@ -216,6 +227,16 @@ export interface HailMaryState {
   activeBalls: Map<string, any>;
   throwsRemaining: number;
   bestDistance: number;
+}
+
+export interface BarnyardBlitzState {
+  type: 'barnyard_blitz';
+  activeAnimals: Map<string, any>;
+  activeDefenders: Map<string, any>;
+  activeBalls: Map<string, any>;
+  currentWaveIndex: number;
+  multiplier: number;
+  streak: number;
 }
 
 // ============================================

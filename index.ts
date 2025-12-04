@@ -95,6 +95,7 @@ class MultiRoundPlayerEntity extends DefaultPlayerEntity {
       GameRound.QB_ACCURACY_GAUNTLET, // Player is QB throwing at multiple targets
       GameRound.FIELD_GOAL_FRENZY,
       GameRound.HAIL_MARY,
+      GameRound.BARNYARD_BLITZ,       // Player throws at farm animals
     ];
 
     if (stationaryRounds.includes(currentRound)) {
@@ -338,6 +339,19 @@ startServer(world => {
     world.chatManager.sendPlayerMessage(player, '/stats - Show detailed stats', 'FFFFFF');
     world.chatManager.sendPlayerMessage(player, '/leaderboard - Show rankings', 'FFFFFF');
     world.chatManager.sendPlayerMessage(player, '/round - Show current round info', 'FFFFFF');
+    world.chatManager.sendPlayerMessage(player, '/barnyard - Start Barnyard Blitz mode', 'FFFFFF');
+  });
+
+  // Test command for Barnyard Blitz
+  world.chatManager.registerCommand('/barnyard', player => {
+    world.chatManager.sendPlayerMessage(player, '--- BARNYARD BLITZ ---', 'FFD700');
+    world.chatManager.sendPlayerMessage(player, 'Starting Barnyard Blitz mode!', '00FF00');
+    world.chatManager.sendPlayerMessage(player, 'Hit farm animals for points!', 'FFFF00');
+    world.chatManager.sendPlayerMessage(player, 'Cow=50, Pig=100, Chicken=200, Rabbit=300', '00FFFF');
+    world.chatManager.sendPlayerMessage(player, 'Watch out for the dog! (-100 pts)', 'FF0000');
+
+    // Set round to Barnyard Blitz and start
+    gameManager.setTestRound(GameRound.BARNYARD_BLITZ);
   });
 
   console.log('[Server] HySports Football initialized!');

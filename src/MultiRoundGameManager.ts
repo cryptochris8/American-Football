@@ -24,6 +24,7 @@ import {
   QBAccuracyGauntletState,
   FieldGoalFrenzyState,
   HailMaryState,
+  BarnyardBlitzState,
   ROUND_CONFIGS,
   MultiRoundUIUpdate,
   RoundIntroUIData,
@@ -37,6 +38,7 @@ import { ReceiverRunRound } from './rounds/ReceiverRunRound';
 import { QBAccuracyGauntletRound } from './rounds/QBAccuracyGauntletRound';
 import { FieldGoalFrenzyRound } from './rounds/FieldGoalFrenzyRound';
 import { HailMaryRound } from './rounds/HailMaryRound';
+import { BarnyardBlitzRound } from './rounds/BarnyardBlitzRound';
 import { BaseRound } from './rounds/BaseRound';
 
 // Constants
@@ -133,6 +135,16 @@ export class MultiRoundGameManager {
           activeBalls: new Map(),
           throwsRemaining: 3,
           bestDistance: 0,
+        };
+      case GameRound.BARNYARD_BLITZ:
+        return {
+          type: 'barnyard_blitz',
+          activeAnimals: new Map(),
+          activeDefenders: new Map(),
+          activeBalls: new Map(),
+          currentWaveIndex: 0,
+          multiplier: 1.0,
+          streak: 0,
         };
     }
   }
@@ -404,6 +416,9 @@ export class MultiRoundGameManager {
         break;
       case GameRound.HAIL_MARY:
         this.currentRoundHandler = new HailMaryRound(this.world, this);
+        break;
+      case GameRound.BARNYARD_BLITZ:
+        this.currentRoundHandler = new BarnyardBlitzRound(this.world, this);
         break;
     }
 
@@ -740,6 +755,50 @@ export class MultiRoundGameManager {
         console.error('[MultiRoundGameManager] Error in round change callback:', e);
       }
     });
+  }
+
+  // ============================================
+  // Testing
+  // ============================================
+
+  /**
+   * Set and start a specific round for testing (bypasses normal game flow)
+   */
+  public setTestRound(round: GameRound): void {
+    console.log(`[MultiRoundGameManager] Starting test round: ${ROUND_CONFIGS[round].name}`);
+
+    // Clean up current round if any
+    if (this.currentRoundHandler) {
+      this.currentRoundHandler.cleanup();
+      this.currentRoundHandler = null;
+    }
+
+    // Set the round
+    this.gameState.currentRound = round;
+    this.gameState.roundNumber = 1;
+    this.gameState.currentRoundIndex = 0;
+    this.gameState.roundState = this.createEmptyRoundState(round);
+
+    // Set duration
+    const config = ROUND_CONFIGS[round];
+    this.gameState.timeRemainingSeconds = config.duration;
+
+    // Initialize the round handler
+    this.initializeRoundHandler();
+
+    // Start the round immediately
+    this.gameState.gameState = MultiRoundGameState.PLAYING;
+    this.gameState.roundStartTime = Date.now();
+
+    if (this.currentRoundHandler) {
+      this.currentRoundHandler.start();
+    }
+
+    // Notify callbacks
+    this.notifyRoundChange();
+
+    // Broadcast UI update
+    this.broadcastUIUpdate();
   }
 
   // ============================================
