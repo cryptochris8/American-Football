@@ -80,6 +80,67 @@ const DOG_CONFIG = {
 };
 
 // ============================================
+// Barnyard Props Configuration
+// ============================================
+
+interface PropConfig {
+  id: string;
+  modelUri: string;
+  position: { x: number; y: number; z: number };
+  rotation?: { x: number; y: number; z: number };
+  scale: number;
+}
+
+const BARNYARD_PROPS: PropConfig[] = [
+  // Left side fences (along X = -14)
+  { id: 'fence_l1', modelUri: 'models/environment/House/fence-wood-1.gltf', position: { x: -14, y: 1, z: -15 }, rotation: { x: 0, y: 90, z: 0 }, scale: 1.5 },
+  { id: 'fence_l2', modelUri: 'models/environment/House/fence-wood-2.gltf', position: { x: -14, y: 1, z: -10 }, rotation: { x: 0, y: 90, z: 0 }, scale: 1.5 },
+  { id: 'fence_l3', modelUri: 'models/environment/House/fence-wood-1.gltf', position: { x: -14, y: 1, z: -5 }, rotation: { x: 0, y: 90, z: 0 }, scale: 1.5 },
+  { id: 'fence_l4', modelUri: 'models/environment/House/fence-wood-3.gltf', position: { x: -14, y: 1, z: 0 }, rotation: { x: 0, y: 90, z: 0 }, scale: 1.5 },
+  { id: 'fence_l5', modelUri: 'models/environment/House/fence-wood-1.gltf', position: { x: -14, y: 1, z: 5 }, rotation: { x: 0, y: 90, z: 0 }, scale: 1.5 },
+  { id: 'fence_l6', modelUri: 'models/environment/House/fence-wood-2.gltf', position: { x: -14, y: 1, z: 10 }, rotation: { x: 0, y: 90, z: 0 }, scale: 1.5 },
+
+  // Right side fences (along X = 14)
+  { id: 'fence_r1', modelUri: 'models/environment/House/fence-wood-1.gltf', position: { x: 14, y: 1, z: -15 }, rotation: { x: 0, y: 90, z: 0 }, scale: 1.5 },
+  { id: 'fence_r2', modelUri: 'models/environment/House/fence-wood-3.gltf', position: { x: 14, y: 1, z: -10 }, rotation: { x: 0, y: 90, z: 0 }, scale: 1.5 },
+  { id: 'fence_r3', modelUri: 'models/environment/House/fence-wood-1.gltf', position: { x: 14, y: 1, z: -5 }, rotation: { x: 0, y: 90, z: 0 }, scale: 1.5 },
+  { id: 'fence_r4', modelUri: 'models/environment/House/fence-wood-2.gltf', position: { x: 14, y: 1, z: 0 }, rotation: { x: 0, y: 90, z: 0 }, scale: 1.5 },
+  { id: 'fence_r5', modelUri: 'models/environment/House/fence-wood-1.gltf', position: { x: 14, y: 1, z: 5 }, rotation: { x: 0, y: 90, z: 0 }, scale: 1.5 },
+  { id: 'fence_r6', modelUri: 'models/environment/House/fence-wood-3.gltf', position: { x: 14, y: 1, z: 10 }, rotation: { x: 0, y: 90, z: 0 }, scale: 1.5 },
+
+  // Scarecrows (corners/edges)
+  { id: 'scarecrow1', modelUri: 'models/environment/Halloween/scarecrow-wheat.gltf', position: { x: -12, y: 1, z: -18 }, rotation: { x: 0, y: 45, z: 0 }, scale: 1.2 },
+  { id: 'scarecrow2', modelUri: 'models/environment/Halloween/scarecrow-pumpkin.gltf', position: { x: 12, y: 1, z: -18 }, rotation: { x: 0, y: -45, z: 0 }, scale: 1.2 },
+
+  // Barrels (scattered around edges)
+  { id: 'barrel1', modelUri: 'models/environment/City/barrel-wood-1.gltf', position: { x: -11, y: 1, z: 12 }, scale: 1.0 },
+  { id: 'barrel2', modelUri: 'models/environment/City/barrel-wood-2.gltf', position: { x: -10, y: 1, z: 13 }, scale: 1.0 },
+  { id: 'barrel3', modelUri: 'models/environment/City/barrel-wood-1.gltf', position: { x: 11, y: 1, z: 12 }, scale: 1.0 },
+  { id: 'barrel4', modelUri: 'models/environment/City/barrel-wood-2.gltf', position: { x: 10, y: 1, z: 13 }, scale: 1.0 },
+
+  // Crates
+  { id: 'crate1', modelUri: 'models/environment/Dungeon/crate-1.gltf', position: { x: -12, y: 1, z: 15 }, scale: 1.0 },
+  { id: 'crate2', modelUri: 'models/environment/Dungeon/crate-2.gltf', position: { x: 12, y: 1, z: 15 }, scale: 1.0 },
+
+  // Pumpkins (decoration clusters)
+  { id: 'pumpkin1', modelUri: 'models/environment/Halloween/stacked-pumpkin.gltf', position: { x: -8, y: 1, z: -18 }, scale: 1.0 },
+  { id: 'pumpkin2', modelUri: 'models/environment/Farm/pumpkin-stage4.gltf', position: { x: 8, y: 1, z: -18 }, scale: 1.5 },
+  { id: 'pumpkin3', modelUri: 'models/environment/Farm/pumpkin-stage4.gltf', position: { x: 0, y: 1, z: -20 }, scale: 1.5 },
+
+  // Corn stalks (back of field)
+  { id: 'corn1', modelUri: 'models/environment/Farm/corn-stage4.gltf', position: { x: -5, y: 1, z: -19 }, scale: 1.5 },
+  { id: 'corn2', modelUri: 'models/environment/Farm/corn-stage4.gltf', position: { x: -3, y: 1, z: -19 }, scale: 1.5 },
+  { id: 'corn3', modelUri: 'models/environment/Farm/corn-stage4.gltf', position: { x: 3, y: 1, z: -19 }, scale: 1.5 },
+  { id: 'corn4', modelUri: 'models/environment/Farm/corn-stage4.gltf', position: { x: 5, y: 1, z: -19 }, scale: 1.5 },
+
+  // Beehive
+  { id: 'beehive1', modelUri: 'models/environment/Farm/beehive.gltf', position: { x: -13, y: 1, z: -12 }, scale: 1.2 },
+
+  // Wagon cart (near player spawn area for atmosphere)
+  { id: 'wagon1', modelUri: 'models/environment/Desert/wagon-cart.gltf', position: { x: 8, y: 1, z: 20 }, rotation: { x: 0, y: -30, z: 0 }, scale: 1.0 },
+];
+
+// ============================================
 // Data Interfaces
 // ============================================
 
@@ -156,6 +217,7 @@ export class BarnyardBlitzRound extends BaseRound {
   private animals: Map<string, AnimalData> = new Map();
   private dogs: Map<string, DogData> = new Map();
   private footballs: Map<string, FootballData> = new Map();
+  private props: Map<string, Entity> = new Map();
   private multiplier: number = 1.0;
   private streak: number = 0;
   private longestStreak: number = 0;
@@ -189,6 +251,9 @@ export class BarnyardBlitzRound extends BaseRound {
   public start(): void {
     console.log('[BarnyardBlitzRound] Starting! Round up those farm animals!');
     this.isActive = true;
+
+    // Spawn barnyard props for atmosphere
+    this.spawnProps();
   }
 
   public update(dt: number): void {
@@ -249,10 +314,55 @@ export class BarnyardBlitzRound extends BaseRound {
 
   public override cleanup(): void {
     super.cleanup();
+
+    // Despawn barnyard props
+    this.despawnProps();
+
     this.animals.clear();
     this.dogs.clear();
     this.footballs.clear();
     this.playerCharging.clear();
+  }
+
+  // ============================================
+  // Props Management
+  // ============================================
+
+  private spawnProps(): void {
+    console.log('[BarnyardBlitzRound] Spawning barnyard props...');
+
+    for (const propConfig of BARNYARD_PROPS) {
+      const propEntity = new Entity({
+        name: `prop_${propConfig.id}`,
+        modelUri: propConfig.modelUri,
+        modelScale: propConfig.scale,
+        rigidBodyOptions: {
+          type: RigidBodyType.KINEMATIC,
+          enabledRotations: { x: false, y: false, z: false },
+        },
+      });
+
+      // Calculate rotation
+      const rotation = propConfig.rotation
+        ? Quaternion.fromEuler(propConfig.rotation.x, propConfig.rotation.y, propConfig.rotation.z)
+        : Quaternion.fromEuler(0, 0, 0);
+
+      this.spawnEntity(propEntity, propConfig.position, rotation);
+      this.props.set(propConfig.id, propEntity);
+    }
+
+    console.log(`[BarnyardBlitzRound] Spawned ${this.props.size} barnyard props`);
+  }
+
+  private despawnProps(): void {
+    console.log('[BarnyardBlitzRound] Despawning barnyard props...');
+
+    this.props.forEach((entity, id) => {
+      this.despawnEntity(entity);
+    });
+
+    this.props.clear();
+    console.log('[BarnyardBlitzRound] All props despawned');
   }
 
   // ============================================
