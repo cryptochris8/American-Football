@@ -1,0 +1,201 @@
+<!-- ========================================
+  HYTOPIA SDK-COMPLIANT MOBILE CONTROLS
+  American Football - QB Target Throw Game
+
+  Based on HYTOPIA_MOBILE_CONTROLS_GUIDE.md
+======================================== -->
+
+<div class="mobile-controls" id="mobile-controls">
+  <div class="mobile-right-controls">
+    <div class="mobile-btn-row">
+      <button id="mobile-aim-btn" class="mobile-btn aim-btn" aria-label="Aim Mode">
+        <span class="btn-icon">&#x1F3AF;</span>
+        <span class="btn-label">AIM</span>
+      </button>
+    </div>
+    <div class="mobile-btn-row">
+      <button id="mobile-throw-btn" class="mobile-btn throw-btn primary-action" aria-label="Throw">
+        <span class="btn-icon">&#x1F3C8;</span>
+        <span class="btn-label">THROW</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Power meter indicator -->
+  <div class="power-indicator" id="power-indicator">
+    <div class="power-label">POWER</div>
+    <div class="power-bar">
+      <div class="power-fill" id="power-fill"></div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .mobile-controls { display: none; }
+
+  body.mobile .mobile-controls,
+  body.mobile.gameplay-active .mobile-controls {
+    display: block;
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 2000;
+  }
+
+  body.mobile .mobile-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 75px; height: 75px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.65);
+    border: 3px solid rgba(255, 255, 255, 0.35);
+    backdrop-filter: blur(8px);
+    color: white;
+    pointer-events: auto;
+    touch-action: none;
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    transition: transform 0.1s ease;
+  }
+
+  body.mobile .mobile-btn:active,
+  body.mobile .mobile-btn.active {
+    transform: scale(0.88);
+    background: rgba(0, 0, 0, 0.85);
+  }
+
+  body.mobile .btn-icon { font-size: 28px; margin-bottom: 2px; }
+  body.mobile .btn-label { font-size: 10px; font-weight: 700; }
+
+  body.mobile .mobile-right-controls { position: fixed; right: 25px; bottom: 50px; }
+  body.mobile .mobile-btn-row { display: flex; gap: 15px; justify-content: flex-end; margin-bottom: 15px; }
+  body.mobile .mobile-btn.primary-action { width: 90px; height: 90px; }
+  body.mobile .primary-action .btn-icon { font-size: 36px; }
+
+  /* Throw button - Brown football theme */
+  body.mobile .throw-btn {
+    background: linear-gradient(145deg, rgba(139, 90, 43, 0.9), rgba(101, 67, 33, 0.95));
+    border-color: rgba(210, 150, 90, 0.7);
+  }
+  body.mobile .throw-btn.active {
+    background: linear-gradient(145deg, rgba(180, 120, 60, 0.95), rgba(139, 90, 43, 0.95));
+    box-shadow: 0 0 30px rgba(210, 150, 90, 0.6);
+  }
+
+  /* Aim button - Blue */
+  body.mobile .aim-btn {
+    background: linear-gradient(145deg, rgba(50, 130, 220, 0.85), rgba(30, 100, 180, 0.9));
+    border-color: rgba(100, 170, 255, 0.6);
+  }
+
+  /* Power indicator */
+  body.mobile .power-indicator {
+    position: fixed;
+    bottom: 50px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 200px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  body.mobile .power-indicator.visible {
+    opacity: 1;
+  }
+
+  .power-label {
+    color: white;
+    font-size: 12px;
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 5px;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+  }
+
+  .power-bar {
+    height: 12px;
+    background: rgba(0, 0, 0, 0.6);
+    border-radius: 6px;
+    overflow: hidden;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+  }
+
+  .power-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #00ff00, #ffff00, #ff0000);
+    transition: width 0.05s linear;
+  }
+</style>
+
+<script>
+(function() {
+  'use strict';
+  const isMobile = document.body.classList.contains('mobile') || (window.hytopia && window.hytopia.isMobile);
+  if (!isMobile) return;
+
+  const BUTTONS = {
+    'mobile-throw-btn': { input: 'ml', behavior: 'hold', name: 'Throw' },
+    'mobile-aim-btn':   { input: 'mr', behavior: 'hold', name: 'Aim' }
+  };
+
+  const powerIndicator = document.getElementById('power-indicator');
+  const powerFill = document.getElementById('power-fill');
+  let powerInterval = null;
+  let currentPower = 0;
+
+  function setupButton(id, cfg) {
+    const btn = document.getElementById(id);
+    if (!btn) return;
+    let pressed = false, touchId = null;
+
+    function press(tid) {
+      if (pressed) return;
+      pressed = true; touchId = tid;
+      btn.classList.add('active');
+      if (window.hytopia?.pressInput) window.hytopia.pressInput(cfg.input, true);
+
+      // Show power meter for throw button
+      if (id === 'mobile-throw-btn' && powerIndicator) {
+        currentPower = 0;
+        powerIndicator.classList.add('visible');
+        powerInterval = setInterval(() => {
+          currentPower = Math.min(100, currentPower + 2);
+          if (powerFill) powerFill.style.width = currentPower + '%';
+        }, 20);
+      }
+    }
+
+    function release(tid) {
+      if (!pressed || (tid !== undefined && tid !== touchId)) return;
+      pressed = false; touchId = null;
+      btn.classList.remove('active');
+      if (window.hytopia?.pressInput) window.hytopia.pressInput(cfg.input, false);
+
+      // Hide power meter
+      if (id === 'mobile-throw-btn' && powerIndicator) {
+        clearInterval(powerInterval);
+        setTimeout(() => {
+          powerIndicator.classList.remove('visible');
+          if (powerFill) powerFill.style.width = '0%';
+        }, 300);
+      }
+    }
+
+    btn.addEventListener('touchstart', e => { e.preventDefault(); press(e.changedTouches[0].identifier); }, { passive: false });
+    btn.addEventListener('touchend', e => { e.preventDefault(); for (const t of e.changedTouches) if (t.identifier === touchId) release(t.identifier); }, { passive: false });
+    btn.addEventListener('touchcancel', e => { for (const t of e.changedTouches) if (t.identifier === touchId) release(t.identifier); }, { passive: false });
+    btn.addEventListener('mousedown', e => { e.preventDefault(); press(-1); });
+    btn.addEventListener('mouseup', () => release(-1));
+    btn.addEventListener('mouseleave', () => { if (pressed) release(-1); });
+    btn.addEventListener('contextmenu', e => e.preventDefault());
+  }
+
+  setTimeout(() => { for (const [id, cfg] of Object.entries(BUTTONS)) setupButton(id, cfg); }, 100);
+})();
+</script>

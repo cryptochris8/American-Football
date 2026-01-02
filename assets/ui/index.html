@@ -4,6 +4,11 @@
 -->
 
 <script>
+  // Mobile detection - add class to body immediately
+  if (hytopia.isMobile) {
+    document.body.classList.add('mobile');
+  }
+
   // Game state
   let gameState = {
     state: 'lobby',
@@ -347,22 +352,115 @@
     }, duration);
   }
 
-  // Mobile controls
+  // ===========================================================================
+  // THROW BUTTON - Using OFFICIAL Hytopia SDK pattern from documentation
+  // Uses touchstart/touchend for mobile + mousedown/mouseup for desktop testing
+  // See: https://dev.hytopia.com/sdk-guides/mobile
+  // ===========================================================================
   document.addEventListener('DOMContentLoaded', () => {
-    const mobileThrowButton = document.getElementById('mobile-throw-button');
-    if (mobileThrowButton) {
-      mobileThrowButton.addEventListener('touchstart', e => {
-        e.preventDefault();
-        mobileThrowButton.classList.add('active');
-        hytopia.pressInput('ml', true);
-      });
-
-      mobileThrowButton.addEventListener('touchend', e => {
-        e.preventDefault();
-        mobileThrowButton.classList.remove('active');
-        hytopia.pressInput('ml', false);
-      });
+    const mobileThrowBtn = document.getElementById('mobile-throw-btn');
+    if (!mobileThrowBtn) {
+      console.error('[ThrowBtn] Button not found!');
+      return;
     }
+
+    let isHolding = false;
+    let activeTouchId = null;
+
+    // Start charging throw
+    function startCharge() {
+      if (isHolding) return;
+      isHolding = true;
+      mobileThrowBtn.classList.add('active');
+
+      // Use hytopia.pressInput to simulate left mouse button press
+      // This is the official Hytopia method for mobile buttons
+      hytopia.pressInput('ml', true);
+
+      // Also send data as backup for server-side handling
+      hytopia.sendData({ type: 'mobile_throw', action: 'start' });
+
+      console.log('[ThrowBtn] Charge STARTED');
+    }
+
+    // Release throw
+    function releaseCharge() {
+      if (!isHolding) return;
+      isHolding = false;
+      activeTouchId = null;
+      mobileThrowBtn.classList.remove('active');
+
+      // Release the input
+      hytopia.pressInput('ml', false);
+
+      // Also send data as backup
+      hytopia.sendData({ type: 'mobile_throw', action: 'release' });
+
+      console.log('[ThrowBtn] Charge RELEASED');
+    }
+
+    // ===================
+    // TOUCH EVENTS (Mobile)
+    // ===================
+    mobileThrowBtn.addEventListener('touchstart', (e) => {
+      e.preventDefault();  // CRITICAL: Prevents page scroll/zoom
+      e.stopPropagation(); // Stop event from bubbling to camera controls
+      const touch = e.changedTouches[0];
+      activeTouchId = touch.identifier;
+
+      // DEBUG: Visual feedback - change button color temporarily
+      mobileThrowBtn.style.backgroundColor = 'red';
+
+      startCharge();
+    }, { passive: false });  // MUST be passive:false to allow preventDefault
+
+    mobileThrowBtn.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      // DEBUG: Reset button color
+      mobileThrowBtn.style.backgroundColor = '';
+
+      // Check if the touch that ended is our active touch
+      for (const touch of e.changedTouches) {
+        if (touch.identifier === activeTouchId) {
+          releaseCharge();
+          break;
+        }
+      }
+    }, { passive: false });
+
+    mobileThrowBtn.addEventListener('touchcancel', (e) => {
+      // Touch was interrupted (e.g., by system gesture)
+      releaseCharge();
+    }, { passive: false });
+
+    // ===================
+    // MOUSE EVENTS (Desktop testing)
+    // ===================
+    mobileThrowBtn.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      startCharge();
+    });
+
+    mobileThrowBtn.addEventListener('mouseup', (e) => {
+      e.preventDefault();
+      releaseCharge();
+    });
+
+    mobileThrowBtn.addEventListener('mouseleave', (e) => {
+      // Release if mouse leaves button while holding
+      if (isHolding) {
+        releaseCharge();
+      }
+    });
+
+    // Prevent context menu on long press (mobile)
+    mobileThrowBtn.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+    });
+
+    console.log('[ThrowBtn] Initialized with touch+mouse events (Hytopia SDK pattern)');
   });
 
   // Initial UI update
@@ -518,6 +616,7 @@
     border-radius: 15px;
     padding: 20px 30px;
     box-shadow: 0 0 30px rgba(255, 100, 0, 0.5);
+    pointer-events: none; /* Allow touch-to-look through combo display */
   }
 
   #combo-container.pulse { animation: combo-pulse 0.3s ease-out; }
@@ -556,6 +655,7 @@
     border: 2px solid rgba(255, 255, 255, 0.3);
     border-radius: 12px;
     overflow: hidden;
+    pointer-events: none; /* Allow touch-to-look through power bar */
   }
 
   #power-fill {
@@ -591,6 +691,7 @@
     padding: 8px 20px;
     border-radius: 8px;
     border: 1px solid rgba(255, 255, 255, 0.3);
+    pointer-events: none; /* Allow touch-to-look through */
   }
 
   /* Notifications */
@@ -810,36 +911,7 @@
     100% { transform: scale(1); opacity: 1; }
   }
 
-  /* Mobile */
-  .mobile-controls { display: none; }
-
-  body.mobile .mobile-controls {
-    display: flex;
-    position: fixed;
-    bottom: 40px;
-    right: 40px;
-  }
-
-  .mobile-button {
-    background-color: rgba(0, 100, 0, 0.7);
-    border: 2px solid rgba(0, 255, 100, 0.5);
-    border-radius: 50%;
-    width: 70px;
-    height: 70px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-family: 'Rajdhani', sans-serif;
-    font-size: 12px;
-    color: rgba(255, 255, 255, 0.9);
-    pointer-events: auto !important;
-  }
-
-  .mobile-button.active {
-    transform: scale(0.92);
-    background-color: rgba(0, 150, 0, 0.9);
-  }
-
+  /* Desktop Instructions */
   .instructions {
     position: fixed;
     bottom: 20px;
@@ -850,9 +922,250 @@
     background: rgba(0, 0, 0, 0.5);
     padding: 10px 15px;
     border-radius: 8px;
+    pointer-events: none;
   }
 
-  body.mobile .instructions { display: none; }
+  /* Mobile Controls - New Enhanced Styles */
+  #mobile-controls {
+    display: block;  /* Always visible for testing - shows on both mobile and desktop */
+    position: fixed;
+    bottom: 40px;
+    right: 30px;
+    z-index: 9999;  /* HIGHEST z-index - above all overlays */
+  }
+
+  body.mobile .instructions {
+    display: none;
+  }
+
+  .mobile-action-btn {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, rgba(0, 200, 0, 0.95), rgba(0, 150, 0, 1));
+    border: 4px solid rgba(0, 255, 100, 0.8);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5), 0 0 30px rgba(0, 255, 100, 0.4);
+    color: white;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 14px;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    touch-action: none;  /* Disable all touch gestures on this element */
+    pointer-events: auto;  /* Ensure this element receives pointer/touch events */
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    user-select: none;
+    -webkit-user-select: none;
+    outline: none;
+  }
+
+  .mobile-action-btn .btn-icon {
+    font-size: 28px;
+    line-height: 1;
+  }
+
+  .mobile-action-btn .btn-label {
+    font-size: 10px;
+    opacity: 0.9;
+  }
+
+  .mobile-action-btn.active {
+    transform: scale(0.92);
+    background: linear-gradient(135deg, rgba(0, 200, 50, 0.95), rgba(0, 150, 0, 1));
+    border-color: rgba(100, 255, 150, 0.9);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3), 0 0 30px rgba(0, 255, 100, 0.5);
+  }
+
+  /* Mobile hint text */
+  .mobile-hint {
+    display: none;
+    position: fixed;
+    bottom: 130px;
+    right: 30px;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.6);
+    text-align: center;
+    pointer-events: none;
+  }
+
+  body.mobile .mobile-hint {
+    display: block;
+  }
+
+  /* ============================================
+     RESPONSIVE MOBILE STYLES
+     ============================================ */
+  @media (max-width: 768px), (pointer: coarse) {
+    /* Score panel - compact for mobile */
+    .score-panel {
+      padding: 8px 12px;
+      min-width: 100px;
+    }
+    #score-value {
+      font-size: 24px;
+    }
+    .score-label, .rank-label {
+      font-size: 10px;
+      letter-spacing: 1px;
+    }
+    #rank-value {
+      font-size: 14px;
+    }
+
+    /* Timer - compact */
+    .timer-panel {
+      padding: 8px 15px;
+    }
+    #timer-value {
+      font-size: 32px;
+    }
+    .timer-label {
+      font-size: 10px;
+    }
+    #round-value {
+      font-size: 11px;
+    }
+    #round-name {
+      font-size: 10px;
+    }
+
+    /* Leaderboard - hidden during gameplay to save space */
+    .leaderboard-panel {
+      display: none;
+    }
+
+    /* Power bar - repositioned and wider for mobile */
+    .power-bar-container {
+      bottom: 140px;
+      width: 70%;
+      max-width: 280px;
+      height: 28px;
+    }
+    .power-label {
+      font-size: 11px;
+    }
+
+    /* Combo - smaller and repositioned */
+    #combo-container {
+      right: 15px;
+      top: 90px;
+      transform: none;
+      padding: 10px 15px;
+    }
+    .combo-label {
+      font-size: 11px;
+    }
+    #combo-value {
+      font-size: 32px;
+    }
+
+    /* Crosshair - slightly larger for visibility */
+    .crosshair {
+      width: 50px;
+      height: 50px;
+    }
+    .crosshair-dot {
+      width: 8px;
+      height: 8px;
+    }
+
+    /* Notifications - larger text for readability */
+    .notification {
+      font-size: 18px;
+      padding: 12px 20px;
+    }
+
+    /* Game mode specific UI - repositioned */
+    #wind-indicator, #kick-distance, #throws-remaining {
+      bottom: 180px;
+      font-size: 16px;
+      padding: 6px 15px;
+    }
+
+    /* Overlays - better mobile sizing */
+    .overlay-title {
+      font-size: 32px;
+      padding: 0 20px;
+    }
+    .overlay-subtitle {
+      font-size: 18px;
+    }
+    .overlay-description {
+      font-size: 14px;
+      padding: 0 20px;
+    }
+
+    /* Intro stats - smaller on mobile */
+    .intro-stats {
+      gap: 20px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .intro-stat {
+      padding: 10px 20px;
+    }
+    .intro-stat .value {
+      font-size: 22px;
+    }
+    .intro-stat .label {
+      font-size: 10px;
+    }
+
+    /* Results leaderboard - narrower */
+    .results-leaderboard, .final-leaderboard {
+      min-width: 280px;
+      padding: 15px;
+    }
+    .results-leaderboard li, .final-leaderboard li {
+      font-size: 14px;
+      padding: 8px 0;
+    }
+
+    /* Countdown - smaller */
+    #countdown-number {
+      font-size: 100px;
+    }
+
+    /* Top bar padding */
+    #game-hud {
+      padding: 10px;
+    }
+  }
+
+  /* Extra small screens (phones in portrait) */
+  @media (max-width: 480px) {
+    .score-panel {
+      padding: 6px 10px;
+      min-width: 80px;
+    }
+    #score-value {
+      font-size: 20px;
+    }
+    .timer-panel {
+      padding: 6px 12px;
+    }
+    #timer-value {
+      font-size: 28px;
+    }
+    .power-bar-container {
+      width: 60%;
+      height: 24px;
+    }
+    .overlay-title {
+      font-size: 24px;
+    }
+    #countdown-number {
+      font-size: 80px;
+    }
+  }
 </style>
 
 <!-- Game HUD -->
@@ -973,12 +1286,36 @@
   <div class="overlay-description">New game starting soon...</div>
 </div>
 
-<!-- Mobile Controls -->
-<div class="mobile-controls">
-  <a id="mobile-throw-button" class="mobile-button">THROW</a>
+<!-- Mobile Controls - Enhanced for touch -->
+<div id="mobile-controls">
+  <button id="mobile-throw-btn" class="mobile-action-btn">
+    <span class="btn-icon">🏈</span>
+    <span class="btn-label">THROW</span>
+  </button>
 </div>
 
-<!-- Instructions -->
+<!-- Mobile Hint -->
+<div class="mobile-hint">
+  Drag to aim • Hold button to charge
+</div>
+
+<!-- Desktop Instructions -->
 <div class="instructions">
   Hold LEFT CLICK to charge | Release to throw | Build combos for bonus points!
 </div>
+
+<!-- Load SDK-compliant mobile controls -->
+<script>
+(function() {
+  fetch('{{CDN_ASSETS_URL}}/ui/mobile-controls.html')
+    .then(response => response.text())
+    .then(html => {
+      const container = document.createElement('div');
+      container.id = 'mobile-controls-container';
+      container.innerHTML = html;
+      document.body.appendChild(container);
+      console.log('[Mobile Controls] Loaded successfully');
+    })
+    .catch(err => console.error('[Mobile Controls] Failed to load:', err));
+})();
+</script>
