@@ -111,8 +111,9 @@ export class HailMaryRound extends BaseRound {
         console.log(`[HailMaryRound] Positioned ${playerId} at QB position (z=${QB_POSITION_Z}), facing receivers`);
 
         // Notify player of throws remaining
-        if ('player' in playerEntity) {
-          (playerEntity as any).player.ui.sendData({
+        const uiPlayer = this.getPlayer(playerId);
+        if (uiPlayer) {
+          uiPlayer.ui.sendData({
             type: 'hail_mary_start',
             throwsRemaining: THROWS_PER_PLAYER,
           });
@@ -277,9 +278,9 @@ export class HailMaryRound extends BaseRound {
         state.chargePower = Math.min(1, state.chargePower + 0.8 * dt);
 
         // Send charge power update to UI
-        const playerEntity = this.gameManager.getPlayerEntity(playerId);
-        if (playerEntity && 'player' in playerEntity) {
-          (playerEntity as any).player.ui.sendData({
+        const player = this.getPlayer(playerId);
+        if (player) {
+          player.ui.sendData({
             type: 'game_update',
             chargePower: state.chargePower,
           });
@@ -359,8 +360,9 @@ export class HailMaryRound extends BaseRound {
     this.playSound('audio/sfx/ball-wind.wav', 0.7);
 
     // Notify player of remaining throws
-    if ('player' in playerEntity) {
-      (playerEntity as any).player.ui.sendData({
+    const uiPlayer = this.getPlayer(playerId);
+    if (uiPlayer) {
+      uiPlayer.ui.sendData({
         type: 'throw_made',
         throwsRemaining: state.throwsRemaining,
         power: Math.round(power * 100),
@@ -516,9 +518,9 @@ export class HailMaryRound extends BaseRound {
     this.playSound('audio/sfx/large-cheer.wav', 0.8);
 
     // Notify player
-    const playerEntity = this.gameManager.getPlayerEntity(playerId);
-    if (playerEntity && 'player' in playerEntity) {
-      (playerEntity as any).player.ui.sendData({
+    const catchNotifyPlayer = this.getPlayer(playerId);
+    if (catchNotifyPlayer) {
+      catchNotifyPlayer.ui.sendData({
         type: 'catch',
         points,
         distance: Math.floor(catchDistance),
@@ -543,9 +545,9 @@ export class HailMaryRound extends BaseRound {
     this.playSound('audio/sfx/ball-ground.wav', 0.5);
 
     // Notify player
-    const playerEntity = this.gameManager.getPlayerEntity(playerId);
-    if (playerEntity && 'player' in playerEntity) {
-      (playerEntity as any).player.ui.sendData({
+    const player = this.getPlayer(playerId);
+    if (player) {
+      player.ui.sendData({
         type: 'incomplete',
         throwsRemaining: state.throwsRemaining,
       });

@@ -677,9 +677,9 @@ export class BarnyardBlitzRound extends BaseRound {
         state.power = Math.min(1, state.power + 1.5 * dt);
 
         // Send charge power update to UI
-        const playerEntity = this.gameManager.getPlayerEntity(playerId);
-        if (playerEntity && 'player' in playerEntity) {
-          (playerEntity as any).player.ui.sendData({
+        const player = this.getPlayer(playerId);
+        if (player) {
+          player.ui.sendData({
             type: 'game_update',
             chargePower: state.power,
           });
@@ -712,8 +712,9 @@ export class BarnyardBlitzRound extends BaseRound {
     if (!playerEntity) return;
 
     // Reset charge UI
-    if ('player' in playerEntity) {
-      (playerEntity as any).player.ui.sendData({
+    const uiPlayer = this.getPlayer(playerId);
+    if (uiPlayer) {
+      uiPlayer.ui.sendData({
         type: 'game_update',
         chargePower: 0,
       });

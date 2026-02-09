@@ -8,3 +8,5 @@ export { ReceiverRunRound } from './ReceiverRunRound';
 export { RunningBackRushRound } from './RunningBackRushRound';
 export { FieldGoalFrenzyRound } from './FieldGoalFrenzyRound';
 export { HailMaryRound } from './HailMaryRound';
+export { BarnyardBlitzRound } from './BarnyardBlitzRound';
+export { QBAccuracyGauntletRound } from './QBAccuracyGauntletRound';

@@ -9,6 +9,7 @@ import {
   Player,
   GameServer,
   Audio,
+  WorldLoopEvent,
 } from 'hytopia';
 
 import {
@@ -54,6 +55,7 @@ const DEFAULT_ROUND_ORDER: GameRound[] = [
   GameRound.QB_ACCURACY_GAUNTLET,
   GameRound.FIELD_GOAL_FRENZY,
   GameRound.HAIL_MARY,
+  GameRound.BARNYARD_BLITZ,
 ];
 
 // Callback for when rounds change
@@ -62,8 +64,7 @@ type RoundChangeCallback = (round: GameRound) => void;
 export class MultiRoundGameManager {
   private world: World;
   private gameState: MultiRoundState;
-  private tickInterval: ReturnType<typeof setInterval> | null = null;
-  private lastTickTime: number = 0;
+  private tickHandler: ((payload: { tickDeltaMs: number }) => void) | null = null;
   private currentRoundHandler: BaseRound | null = null;
   private playerEntities: Map<string, Entity> = new Map();
   private roundChangeCallbacks: RoundChangeCallback[] = [];
@@ -176,17 +177,15 @@ export class MultiRoundGameManager {
 
   public initialize(): void {
     console.log('[MultiRoundGameManager] Initializing multi-round game system...');
-    this.lastTickTime = Date.now();
-    this.tickInterval = setInterval(() => this.tick(), 1000 / 60);
+    this.tickHandler = ({ tickDeltaMs }: { tickDeltaMs: number }) => {
+      let dt = tickDeltaMs / 1000;
+      if (dt > 0.1) dt = 0.1;
+      this.tick(dt);
+    };
+    this.world.loop.on(WorldLoopEvent.TICK_START, this.tickHandler);
   }
 
-  private tick(): void {
-    const now = Date.now();
-    let dt = (now - this.lastTickTime) / 1000;
-    this.lastTickTime = now;
-
-    if (typeof dt !== 'number' || isNaN(dt) || dt <= 0) dt = 1 / 60;
-    if (dt > 0.1) dt = 0.1;
+  private tick(dt: number): void {
 
     switch (this.gameState.gameState) {
       case MultiRoundGameState.LOBBY:
@@ -604,11 +603,8 @@ export class MultiRoundGameManager {
   }
 
   private broadcastUIUpdate(): void {
-    this.gameState.playerScores.forEach((_, playerId) => {
-      const entity = this.playerEntities.get(playerId);
-      if (entity && 'player' in entity) {
-        this.sendUIUpdateToPlayer((entity as any).player);
-      }
+    GameServer.instance.playerManager.getConnectedPlayersByWorld(this.world).forEach(player => {
+      this.sendUIUpdateToPlayer(player);
     });
   }
 
@@ -728,12 +724,8 @@ export class MultiRoundGameManager {
       return;
     }
 
-    if (typeof (this.currentRoundHandler as any).handlePlayerInput === 'function') {
-      console.log(`[MultiRoundGameManager] Routing input to round handler`);
-      (this.currentRoundHandler as any).handlePlayerInput(playerId, player, inputType);
-    } else {
-      console.log(`[MultiRoundGameManager] Handler does not have handlePlayerInput method`);
-    }
+    console.log(`[MultiRoundGameManager] Routing input to round handler`);
+    this.currentRoundHandler.handlePlayerInput(playerId, player, inputType);
   }
 
   /**
@@ -806,9 +798,9 @@ export class MultiRoundGameManager {
   // ============================================
 
   public dispose(): void {
-    if (this.tickInterval) {
-      clearInterval(this.tickInterval);
-      this.tickInterval = null;
+    if (this.tickHandler) {
+      this.world.loop.off(WorldLoopEvent.TICK_START, this.tickHandler);
+      this.tickHandler = null;
     }
 
     if (this.currentRoundHandler) {

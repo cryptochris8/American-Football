@@ -45,6 +45,11 @@ export abstract class BaseRound {
   public abstract end(): void;
 
   /**
+   * Handle player input (throw/kick charge and release)
+   */
+  public abstract handlePlayerInput(playerId: string, player: Player, inputType: 'start' | 'release'): void;
+
+  /**
    * Clean up round resources
    */
   public cleanup(): void {
@@ -149,6 +154,17 @@ export abstract class BaseRound {
    */
   protected randomElement<T>(array: T[]): T {
     return array[Math.floor(Math.random() * array.length)];
+  }
+
+  /**
+   * Get the Player object for a given playerId from the entity map
+   */
+  protected getPlayer(playerId: string): Player | undefined {
+    const entity = this.gameManager.getPlayerEntity(playerId);
+    if (entity && 'player' in entity) {
+      return (entity as any).player as Player;
+    }
+    return undefined;
   }
 }
 

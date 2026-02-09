@@ -142,9 +142,9 @@ export class FieldGoalFrenzyRound extends BaseRound {
 
     // Notify all players
     this.getActivePlayers().forEach(playerId => {
-      const playerEntity = this.gameManager.getPlayerEntity(playerId);
-      if (playerEntity && 'player' in playerEntity) {
-        (playerEntity as any).player.ui.sendData({
+      const player = this.getPlayer(playerId);
+      if (player) {
+        player.ui.sendData({
           type: 'wind_update',
           windSpeed: this.windSpeed,
           windDirection: this.windDirection > 0 ? 'right' : 'left',
@@ -171,8 +171,9 @@ export class FieldGoalFrenzyRound extends BaseRound {
     console.log(`[FieldGoalFrenzy] Positioned ${playerId} at z=${kickZ} (${kickDistance.distance} yards), facing goal posts`);
 
     // Notify player of new distance
-    if ('player' in playerEntity) {
-      (playerEntity as any).player.ui.sendData({
+    const uiPlayer = this.getPlayer(playerId);
+    if (uiPlayer) {
+      uiPlayer.ui.sendData({
         type: 'kick_distance',
         distance: kickDistance.distance,
         points: kickDistance.points,
@@ -191,9 +192,9 @@ export class FieldGoalFrenzyRound extends BaseRound {
         state.chargePower = Math.min(1, state.chargePower + 1.2 * dt);
 
         // Send charge power update to UI
-        const playerEntity = this.gameManager.getPlayerEntity(playerId);
-        if (playerEntity && 'player' in playerEntity) {
-          (playerEntity as any).player.ui.sendData({
+        const player = this.getPlayer(playerId);
+        if (player) {
+          player.ui.sendData({
             type: 'game_update',
             chargePower: state.chargePower,
           });
@@ -423,9 +424,9 @@ export class FieldGoalFrenzyRound extends BaseRound {
     }
 
     // Notify player
-    const playerEntity = this.gameManager.getPlayerEntity(playerId);
-    if (playerEntity && 'player' in playerEntity) {
-      (playerEntity as any).player.ui.sendData({
+    const player = this.getPlayer(playerId);
+    if (player) {
+      player.ui.sendData({
         type: 'field_goal_good',
         points: totalPoints,
         streak: state.streak,
@@ -459,9 +460,9 @@ export class FieldGoalFrenzyRound extends BaseRound {
     this.playSound('audio/sfx/ball-ground.wav', 0.5);
 
     // Notify player
-    const playerEntity = this.gameManager.getPlayerEntity(playerId);
-    if (playerEntity && 'player' in playerEntity) {
-      (playerEntity as any).player.ui.sendData({
+    const player = this.getPlayer(playerId);
+    if (player) {
+      player.ui.sendData({
         type: 'field_goal_miss',
         newDistance: KICK_DISTANCES[state.currentDistanceIndex].distance,
       });

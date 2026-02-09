@@ -194,8 +194,9 @@ export class ReceiverRunRound extends BaseRound {
         playerEntity.setPosition(QB_POSITION);
         playerEntity.setRotation(Quaternion.fromEuler(0, 180, 0));
 
-        if ('player' in playerEntity) {
-          (playerEntity as any).player.ui.sendData({
+        const uiPlayer = this.getPlayer(playerId);
+        if (uiPlayer) {
+          uiPlayer.ui.sendData({
             type: 'round_info',
             message: 'Throw to receivers running routes!',
           });
@@ -315,9 +316,9 @@ export class ReceiverRunRound extends BaseRound {
 
     // Notify players of new route
     this.getActivePlayers().forEach(playerId => {
-      const playerEntity = this.gameManager.getPlayerEntity(playerId);
-      if (playerEntity && 'player' in playerEntity) {
-        (playerEntity as any).player.ui.sendData({
+      const player = this.getPlayer(playerId);
+      if (player) {
+        player.ui.sendData({
           type: 'route_spawned',
           side,
           routeType: route.type,
@@ -525,9 +526,9 @@ export class ReceiverRunRound extends BaseRound {
       if (state.isCharging) {
         state.chargePower = Math.min(1, state.chargePower + 1.2 * dt);
 
-        const playerEntity = this.gameManager.getPlayerEntity(playerId);
-        if (playerEntity && 'player' in playerEntity) {
-          (playerEntity as any).player.ui.sendData({
+        const player = this.getPlayer(playerId);
+        if (player) {
+          player.ui.sendData({
             type: 'game_update',
             chargePower: state.chargePower,
           });
@@ -565,8 +566,9 @@ export class ReceiverRunRound extends BaseRound {
     if (!playerEntity) return;
 
     // Reset charge UI
-    if ('player' in playerEntity) {
-      (playerEntity as any).player.ui.sendData({
+    const uiPlayer = this.getPlayer(playerId);
+    if (uiPlayer) {
+      uiPlayer.ui.sendData({
         type: 'game_update',
         chargePower: 0,
       });
@@ -767,9 +769,9 @@ export class ReceiverRunRound extends BaseRound {
     }, 800);
 
     // Notify player
-    const playerEntity = this.gameManager.getPlayerEntity(playerId);
-    if (playerEntity && 'player' in playerEntity) {
-      (playerEntity as any).player.ui.sendData({
+    const catchPlayer = this.getPlayer(playerId);
+    if (catchPlayer) {
+      catchPlayer.ui.sendData({
         type: 'catch',
         points,
         routeType: receiver.route.type,

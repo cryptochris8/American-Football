@@ -288,9 +288,9 @@ export class QBAccuracyGauntletRound extends BaseRound {
     });
 
     // Notify player
-    const playerEntity = this.gameManager.getPlayerEntity(playerId);
-    if (playerEntity && 'player' in playerEntity) {
-      (playerEntity as any).player.ui.sendData({
+    const player = this.getPlayer(playerId);
+    if (player) {
+      player.ui.sendData({
         type: 'wave_start',
         wave: actualWaveIndex + 1,
         totalWaves: WAVE_CONFIGS.length,
@@ -349,9 +349,9 @@ export class QBAccuracyGauntletRound extends BaseRound {
       console.log(`[QBAccuracyGauntlet] Wave ${state.currentWave + 1} complete! Time: ${timeTaken.toFixed(1)}s, Bonus: ${timeBonus}`);
 
       // Notify player
-      const playerEntity = this.gameManager.getPlayerEntity(playerId);
-      if (playerEntity && 'player' in playerEntity) {
-        (playerEntity as any).player.ui.sendData({
+      const player = this.getPlayer(playerId);
+      if (player) {
+        player.ui.sendData({
           type: 'wave_complete',
           wave: state.currentWave + 1,
           timeTaken,
@@ -373,8 +373,8 @@ export class QBAccuracyGauntletRound extends BaseRound {
         // Perfect game bonus
         this.addScore(playerId, 1000);
 
-        if (playerEntity && 'player' in playerEntity) {
-          (playerEntity as any).player.ui.sendData({
+        if (player) {
+          player.ui.sendData({
             type: 'gauntlet_complete',
             perfectBonus: 1000,
           });
@@ -494,9 +494,9 @@ export class QBAccuracyGauntletRound extends BaseRound {
     }
 
     // Notify player
-    const playerEntity = this.gameManager.getPlayerEntity(playerId);
-    if (playerEntity && 'player' in playerEntity) {
-      (playerEntity as any).player.ui.sendData({
+    const hitPlayer = this.getPlayer(playerId);
+    if (hitPlayer) {
+      hitPlayer.ui.sendData({
         type: 'target_hit',
         points,
         combo: state.combo,
@@ -527,9 +527,9 @@ export class QBAccuracyGauntletRound extends BaseRound {
         state.combo = 0;
 
         // Notify player combo ended
-        const playerEntity = this.gameManager.getPlayerEntity(playerId);
-        if (playerEntity && 'player' in playerEntity) {
-          (playerEntity as any).player.ui.sendData({
+        const player = this.getPlayer(playerId);
+        if (player) {
+          player.ui.sendData({
             type: 'combo_end',
           });
         }
@@ -547,9 +547,9 @@ export class QBAccuracyGauntletRound extends BaseRound {
         state.chargePower = Math.min(1, state.chargePower + 1.5 * dt);
 
         // Send charge power update to UI
-        const playerEntity = this.gameManager.getPlayerEntity(playerId);
-        if (playerEntity && 'player' in playerEntity) {
-          (playerEntity as any).player.ui.sendData({
+        const player = this.getPlayer(playerId);
+        if (player) {
+          player.ui.sendData({
             type: 'game_update',
             chargePower: state.chargePower,
           });
@@ -582,8 +582,9 @@ export class QBAccuracyGauntletRound extends BaseRound {
     if (!playerEntity) return;
 
     // Reset charge UI
-    if ('player' in playerEntity) {
-      (playerEntity as any).player.ui.sendData({
+    const uiPlayer = this.getPlayer(playerId);
+    if (uiPlayer) {
+      uiPlayer.ui.sendData({
         type: 'game_update',
         chargePower: 0,
       });

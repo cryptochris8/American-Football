@@ -377,9 +377,9 @@ export class RunningBackRushRound extends BaseRound {
     this.playSound('audio/sfx/ball-ground.wav', 0.5);
 
     // Notify player
-    const playerEntity = this.gameManager.getPlayerEntity(playerId);
-    if (playerEntity && 'player' in playerEntity) {
-      (playerEntity as any).player.ui.sendData({
+    const player = this.getPlayer(playerId);
+    if (player) {
+      player.ui.sendData({
         type: 'tackled',
         yardsGained: Math.floor(yardsGained),
         penalty: TACKLE_PENALTY,
@@ -417,12 +417,11 @@ export class RunningBackRushRound extends BaseRound {
       const defender = defenderState.entity;
       if (!defender.isSpawned) return;
 
-      defender.hasTackled = false;
+      defender.reset();
       defenderState.isChasing = false;
       defenderState.targetPlayer = null;
 
       defender.setPosition(defenderState.basePosition);
-      defender.playAnimation('idle', true);
     });
   }
 
@@ -495,9 +494,9 @@ export class RunningBackRushRound extends BaseRound {
     this.playSound('audio/sfx/large-cheer.wav', 0.7);
 
     // Notify player
-    const playerEntity = this.gameManager.getPlayerEntity(playerId);
-    if (playerEntity && 'player' in playerEntity) {
-      (playerEntity as any).player.ui.sendData({
+    const player = this.getPlayer(playerId);
+    if (player) {
+      player.ui.sendData({
         type: 'touchdown',
         points: TOUCHDOWN_POINTS,
         totalTouchdowns: state.touchdowns,
@@ -513,7 +512,7 @@ export class RunningBackRushRound extends BaseRound {
   // Player Controls
   // ============================================
 
-  public handlePlayerInput(playerId: string, player: Player, inputType: string): void {
+  public handlePlayerInput(playerId: string, player: Player, inputType: 'start' | 'release'): void {
     // Players use normal movement controls (WASD)
     // No special input handling needed for this mode
   }
